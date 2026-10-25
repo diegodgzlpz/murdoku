@@ -1,0 +1,46 @@
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Murdoku</title>
+  </head>
+  <body>
+    <header>
+      <strong>Murdoku</strong>
+      <span id="info"></span>
+    </header>
+    <div class="controls">
+      <select id="size"></select>
+      <select id="scenario"></select>
+      <select id="difficulty"></select>
+      <button id="new">Nuevo nivel</button>
+      <input id="seed" placeholder="seed" size="12" />
+      <button id="load-seed">Cargar seed</button>
+      <button id="reset">Reiniciar</button>
+    </div>
+    <div id="tools"></div>
+    <small>Clic: colocar la persona seleccionada (otro clic la quita). Clic derecho: descartar casilla.</small>
+    <main>
+      <div id="board"></div>
+      <section>
+        <h3>Pistas</h3>
+        <ol id="clues" start="0"></ol>
+        <div class="controls">
+          <label>Acusar: <select id="accuse"></select></label>
+          <button id="check">Comprobar</button>
+        </div>
+        <p id="message"></p>
+      </section>
+    </main>
+    <details>
+      <summary>Guardar / cargar JSON</summary>
+      <div class="controls">
+        <button id="export">Exportar</button>
+        <button id="import">Importar</button>
+      </div>
+      <textarea id="json"></textarea>
+    </details>
+    <script type="module" src="/src/ui/main.ts"></script>
+  </body>
+</html>
