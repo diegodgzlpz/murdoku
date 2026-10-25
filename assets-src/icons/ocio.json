@@ -1,0 +1,67 @@
+{
+  "sheet": "ocio.jpeg",
+  "grid": {
+    "cols": 3,
+    "rows": 3
+  },
+  "tolerance": {
+    "inner": 70,
+    "outer": 170
+  },
+  "icons": [
+    {
+      "pos": [0, 0],
+      "id": "stool",
+      "kind": "furniture",
+      "occupiable": true
+    },
+    {
+      "pos": [0, 1],
+      "id": "lounger",
+      "kind": "furniture",
+      "occupiable": true
+    },
+    {
+      "pos": [0, 2],
+      "id": "fridge",
+      "kind": "furniture",
+      "occupiable": false
+    },
+    {
+      "pos": [1, 0],
+      "id": "counter",
+      "kind": "furniture",
+      "occupiable": false
+    },
+    {
+      "pos": [1, 1],
+      "id": "piano",
+      "kind": "furniture",
+      "occupiable": false
+    },
+    {
+      "pos": [1, 2],
+      "id": "speaker",
+      "kind": "furniture",
+      "occupiable": false
+    },
+    {
+      "pos": [2, 0],
+      "id": "umbrella",
+      "kind": "furniture",
+      "occupiable": false
+    },
+    {
+      "pos": [2, 1],
+      "id": "rack",
+      "kind": "furniture",
+      "occupiable": false
+    },
+    {
+      "pos": [2, 2],
+      "id": "table-3",
+      "kind": "furniture",
+      "variantOf": "table"
+    }
+  ]
+}

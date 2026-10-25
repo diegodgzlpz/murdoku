@@ -29,7 +29,7 @@
     },
     {
       "pos": [1, 0],
-      "id": "rack",
+      "id": "clothesRack",
       "kind": "furniture",
       "occupiable": false
     },

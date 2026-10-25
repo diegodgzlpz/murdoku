@@ -28,6 +28,7 @@ export type FurnitureType =
   | 'wardrobe'
   | 'umbrella'
   | 'rack'
+  | 'clothesRack'
   | 'armchair'
   | 'toilet'
   | 'shower'

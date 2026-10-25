@@ -37,6 +37,7 @@ export const FURNITURE: Record<FurnitureType, FurnitureDef> = {
   wardrobe: { type: 'wardrobe', occupiable: false, withArticle: 'un armario', glyph: '🚪', letter: 'A' },
   umbrella: { type: 'umbrella', occupiable: false, withArticle: 'una sombrilla', glyph: '⛱️', letter: 'Y' },
   rack: { type: 'rack', occupiable: false, withArticle: 'un perchero', glyph: '🧥', letter: 'R' },
+  clothesRack: { type: 'clothesRack', occupiable: false, withArticle: 'un burro de ropa', glyph: '👚', letter: '%' },
   armchair: { type: 'armchair', occupiable: true, withArticle: 'un sillón', posture: SIT, glyph: '💺', letter: 'a' },
   toilet: { type: 'toilet', occupiable: true, withArticle: 'un inodoro', posture: SIT, glyph: '🚽', letter: 'i' },
   shower: { type: 'shower', occupiable: true, withArticle: 'una ducha', posture: STAND_IN, glyph: '🚿', letter: 'd' },

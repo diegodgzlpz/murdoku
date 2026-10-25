@@ -39,10 +39,9 @@ describe('icon manifests vs core furniture catalog', () => {
     for (const id of ['person', 'victim', 'window', 'mark', 'magnifier']) expect(ICONS).toHaveProperty(id);
   });
 
-  it('lists the generator furniture still without icon (fallback glyph)', () => {
+  it('every furniture type the generator can place has an icon', () => {
     const used = new Set(SCENARIOS.flatMap((s) => s.rooms.flatMap((r) => r.furniture)));
     const missing = [...used].filter((t) => (ICONS as Record<string, { kind: string }>)[t]?.kind !== 'furniture').sort();
-    // Known gap: these keep the emoji until icons exist. Update when new sheets are imported.
-    expect(missing).toEqual(['counter', 'fridge', 'lounger', 'piano', 'speaker', 'stool', 'umbrella']);
+    expect(missing).toEqual([]);
   });
 });

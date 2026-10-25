@@ -102,7 +102,7 @@ export const SCENARIOS: ScenarioDef[] = [
     id: 'mall',
     name: 'Centro comercial',
     rooms: [
-      room('clothes', 'Tienda de ropa', 'la', ['rack', 'rack', 'mannequin', 'clothesTable', 'chair']),
+      room('clothes', 'Tienda de ropa', 'la', ['clothesRack', 'clothesRack', 'mannequin', 'clothesTable', 'chair']),
       room('food', 'Zona de restauración', 'la', ['table', 'table', 'chair', 'chair', 'plant']),
       room('cinema', 'Cine', 'el', ['chair', 'chair', 'tv', 'speaker'], false),
       room('bookshop', 'Librería', 'la', ['shelf', 'shelf', 'display', 'armchair', 'rug']),
