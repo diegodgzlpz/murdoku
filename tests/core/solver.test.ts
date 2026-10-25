@@ -89,6 +89,7 @@ function solverMatchesBruteForce(seed: number): boolean {
   const all = enumerateTrueClues({
     board,
     suspects: people.filter((p) => !p.isVictim),
+    people,
     solution: { positions, murderer: 'A' },
   });
   const clues = rng.shuffle(all).slice(0, rng.range(0, Math.min(8, all.length)));

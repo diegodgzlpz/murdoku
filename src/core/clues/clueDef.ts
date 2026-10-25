@@ -7,6 +7,7 @@ import type { Clue } from './types';
  */
 export interface PruneContext {
   readonly board: Board;
+  readonly people: Person[];
   readonly personCount: number;
   index(id: PersonId): number;
   has(person: number, cell: CellIndex): boolean;
@@ -26,15 +27,19 @@ export interface EnumerateContext {
   board: Board;
   /** Only suspects: clues never mention the victim. */
   suspects: Person[];
+  /** Everybody, victim included (for clues that count people). */
+  people: Person[];
   solution: Solution;
 }
 
 export interface ClueDef<C extends Clue = Clue> {
   kind: C['kind'];
+  /** True when truth depends only on one person's cell (pruning is then exact). */
+  unary?: boolean;
   /** People mentioned by the clue. */
   persons(clue: C): PersonId[];
   /** Does the clue hold for a complete placement? */
-  evaluate(clue: C, board: Board, positions: Positions): boolean;
+  evaluate(clue: C, board: Board, positions: Positions, people: Person[]): boolean;
   /** Remove candidates that the clue rules out given the current partial state. Must be sound. */
   prune(clue: C, ctx: PruneContext): void;
   /** Spanish sentence. */
@@ -71,6 +76,7 @@ export function unaryDef<C extends Clue & { person: PersonId }>(spec: UnarySpec<
   };
   return {
     kind: spec.kind,
+    unary: true,
     persons: (clue) => [clue.person],
     evaluate: (clue, board, positions) => {
       const cell = positions[clue.person];

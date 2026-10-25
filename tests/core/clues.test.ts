@@ -1,6 +1,6 @@
 import fc from 'fast-check';
 import { describe, expect, it } from 'vitest';
-import { clueText, enumerateTrueClues, evaluateClue, pruneClue } from '../../src/core/clues/registry';
+import { clueDef, clueText, enumerateTrueClues, evaluateClue, pruneClue } from '../../src/core/clues/registry';
 import type { Clue } from '../../src/core/clues/types';
 import { createPeople } from '../../src/core/model/people';
 import { compileModel, Propagator, State } from '../../src/core/solver/engine';
@@ -30,12 +30,27 @@ describe('clue texts (es)', () => {
     expect(text({ kind: 'relative', a: 'D', b: 'C', dir: 'W' })).toBe('Diego estaba más al oeste que Carla.');
     expect(text({ kind: 'emptyRoomCount', count: 0 })).toBe('Ninguna habitación estaba vacía.');
     expect(text({ kind: 'emptyRoomCount', count: 2 })).toBe('Había exactamente 2 habitaciones vacías.');
+    expect(text({ kind: 'inLine', person: 'B', axis: 'col', index: 5 })).toBe('Benjamín estaba en la última columna.');
+    expect(text({ kind: 'inLine', person: 'B', axis: 'row', index: 0 })).toBe('Benjamín estaba en la primera fila.');
+    expect(text({ kind: 'inLine', person: 'B', axis: 'row', index: 2 })).toBe('Benjamín estaba en la tercera fila.');
+    expect(text({ kind: 'onlyOnFurniture', person: 'D', furniture: 'chair' })).toBe(
+      'Diego era la única persona sentada en una silla.',
+    );
+    expect(text({ kind: 'roomWithGender', person: 'D', gender: 'm', count: 2 })).toBe(
+      'Diego estaba en una habitación con dos hombres.',
+    );
+    expect(text({ kind: 'roomWithGender', person: 'D', gender: 'f', count: 1 })).toBe(
+      'Diego estaba en una habitación con una mujer.',
+    );
+    // Single bed on the hand-made board -> definite article; three chairs -> indefinite.
+    expect(text({ kind: 'someoneOnFurniture', furniture: 'bed' })).toBe('Alguien estaba sobre la cama.');
+    expect(text({ kind: 'someoneOnFurniture', furniture: 'chair' })).toBe('Alguien estaba sobre una silla.');
   });
 });
 
 describe('clue semantics on the hand-made board', () => {
   const pos = handmadeSolution;
-  const ev = (c: Clue) => evaluateClue(c, handmadeBoard, pos);
+  const ev = (c: Clue) => evaluateClue(c, handmadeBoard, pos, people);
 
   it('all hand-made clues hold in the solution', () => {
     for (const c of handmadePuzzle.clues) expect(ev(c)).toBe(true);
@@ -68,6 +83,22 @@ describe('clue semantics on the hand-made board', () => {
     expect(ev({ kind: 'differentRoom', a: 'B', b: 'E' })).toBe(false);
     expect(ev({ kind: 'emptyRoomCount', count: 2 })).toBe(true); // cocina, comedor
   });
+
+  it('line, uniqueness, gender and "someone" clues', () => {
+    // E at (5,5): last row and last column.
+    expect(ev({ kind: 'inLine', person: 'E', axis: 'row', index: 5 })).toBe(true);
+    expect(ev({ kind: 'inLine', person: 'E', axis: 'col', index: 4 })).toBe(false);
+    // B is the only one on a chair; C the only one on a bed; A on the sofa.
+    expect(ev({ kind: 'onlyOnFurniture', person: 'B', furniture: 'chair' })).toBe(true);
+    expect(ev({ kind: 'onlyOnFurniture', person: 'A', furniture: 'chair' })).toBe(false);
+    expect(ev({ kind: 'someoneOnFurniture', furniture: 'bed' })).toBe(true);
+    expect(ev({ kind: 'someoneOnFurniture', furniture: 'lounger' })).toBe(false);
+    // Despacho holds B (m) and E (f): B shares it with one woman and no man.
+    expect(ev({ kind: 'roomWithGender', person: 'B', gender: 'f', count: 1 })).toBe(true);
+    expect(ev({ kind: 'roomWithGender', person: 'B', gender: 'm', count: 1 })).toBe(false);
+    // Dormitorio holds C (f) and the victim Vera (f, default name): the victim counts.
+    expect(ev({ kind: 'roomWithGender', person: 'C', gender: 'f', count: 1 })).toBe(true);
+  });
 });
 
 /** Apply a single clue's pruner on a random partial state that still contains the solution. */
@@ -79,10 +110,10 @@ function pruneKeeps(seed: number): boolean {
   if (!positions) return true;
   const ppl = createPeople(size);
   const suspects = ppl.filter((p) => !p.isVictim);
-  const clues = enumerateTrueClues({ board, suspects, solution: { positions, murderer: 'A' } });
+  const clues = enumerateTrueClues({ board, suspects, people: ppl, solution: { positions, murderer: 'A' } });
   const model = compileModel(board, ppl, []);
   for (const clue of clues) {
-    if (!evaluateClue(clue, board, positions)) return false;
+    if (!evaluateClue(clue, board, positions, ppl)) return false;
     const state = State.initial(model);
     // Random partial state: drop non-solution candidates with probability 0.5.
     ppl.forEach((p, i) => {
@@ -110,8 +141,9 @@ function unaryPruneExact(seed: number): boolean {
   const clues = enumerateTrueClues({
     board,
     suspects: ppl.filter((p) => !p.isVictim),
+    people: ppl,
     solution: { positions, murderer: 'A' },
-  }).filter((c) => 'person' in c);
+  }).filter((c) => clueDef(c).unary);
   const model = compileModel(board, ppl, []);
   for (const clue of clues) {
     const person = (clue as { person: string }).person;
@@ -121,7 +153,7 @@ function unaryPruneExact(seed: number): boolean {
     pruneClue(clue, prop);
     for (let c = 0; c < model.cellCount; c++) {
       const kept = state.dom[pi * model.cellCount + c] === 1;
-      const truth = evaluateClue(clue, board, { ...positions, [person]: c } as Positions);
+      const truth = evaluateClue(clue, board, { ...positions, [person]: c } as Positions, ppl);
       if (kept !== truth) return false;
     }
   }
@@ -145,6 +177,7 @@ describe('clue pruners (property)', () => {
       const clues = enumerateTrueClues({
         board,
         suspects: ppl.filter((p) => !p.isVictim),
+        people: ppl,
         solution: { positions, murderer: 'A' },
       });
       expect(JSON.stringify(clues)).not.toMatch(/"V"/);

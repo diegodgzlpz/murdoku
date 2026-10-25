@@ -15,16 +15,19 @@ export const DIFFICULTY_WEIGHTS: Record<Difficulty, Weights> = {
     inRoom: 3, notInRoom: 0.5, 'nextToFurniture+room': 2.5, nextToFurniture: 1.5, onFurniture: 3,
     'nextToWindow+room': 2, nextToWindow: 1.5, byWall: 0.5, inCorner: 1, sameRoom: 1,
     differentRoom: 0.5, relative: 0.5, emptyRoomCount: 2,
+    inLine: 0.5, onlyOnFurniture: 2, roomWithGender: 1.5, someoneOnFurniture: 2,
   },
   medium: {
     inRoom: 1.5, notInRoom: 1, 'nextToFurniture+room': 1.2, nextToFurniture: 1.2, onFurniture: 1.2,
     'nextToWindow+room': 1, nextToWindow: 1, byWall: 1, inCorner: 1, sameRoom: 1,
     differentRoom: 1, relative: 1, emptyRoomCount: 1,
+    inLine: 0.35, onlyOnFurniture: 1.5, roomWithGender: 2, someoneOnFurniture: 2.5,
   },
   hard: {
     inRoom: 0.3, notInRoom: 1.5, 'nextToFurniture+room': 0.8, nextToFurniture: 1.5, onFurniture: 0.5,
     'nextToWindow+room': 0.6, nextToWindow: 1.2, byWall: 1, inCorner: 1.2, sameRoom: 1.5,
     differentRoom: 1.5, relative: 2, emptyRoomCount: 0.5,
+    inLine: 0.2, onlyOnFurniture: 1, roomWithGender: 2.5, someoneOnFurniture: 3,
   },
 };
 
@@ -56,7 +59,7 @@ export function selectClues(
 ): ClueSelectionResult | null {
   const weights = DIFFICULTY_WEIGHTS[difficulty];
   const suspects = people.filter((p) => !p.isVictim);
-  let pool = enumerateTrueClues({ board, suspects, solution }).filter((c) => (weights[weightKey(c)] ?? 0) > 0);
+  let pool = enumerateTrueClues({ board, suspects, people, solution }).filter((c) => (weights[weightKey(c)] ?? 0) > 0);
   const chosen: Clue[] = [];
   const needsNoGuess = difficulty === 'easy';
   const puzzleOf = (clues: Clue[]) => ({ schemaVersion: 1 as const, scenarioId: '', board, people, clues });

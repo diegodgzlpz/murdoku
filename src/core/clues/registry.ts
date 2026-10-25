@@ -1,6 +1,9 @@
 import type { Board, Person, PersonId, Positions } from '../model/types';
 import type { ClueDef, EnumerateContext, PruneContext } from './clueDef';
 import { emptyRoomCount } from './defs/emptyRooms';
+import { onlyOnFurniture, someoneOnFurniture } from './defs/furnitureCount';
+import { roomWithGender } from './defs/gender';
+import { inLine } from './defs/lines';
 import { nextToFurniture, onFurniture } from './defs/furniture';
 import { differentRoom, relative, sameRoom } from './defs/pairs';
 import { inRoom, notInRoom } from './defs/room';
@@ -23,6 +26,10 @@ export const CLUE_DEFS: { [K in ClueKind]: ClueDef<ClueOfKind<K>> } = {
   differentRoom,
   relative,
   emptyRoomCount,
+  inLine,
+  onlyOnFurniture,
+  roomWithGender,
+  someoneOnFurniture,
 };
 
 export const CLUE_KINDS = Object.keys(CLUE_DEFS) as ClueKind[];
@@ -31,8 +38,8 @@ export function clueDef<C extends Clue>(clue: C): ClueDef<C> {
   return CLUE_DEFS[clue.kind] as unknown as ClueDef<C>;
 }
 
-export function evaluateClue(clue: Clue, board: Board, positions: Positions): boolean {
-  return clueDef(clue).evaluate(clue, board, positions);
+export function evaluateClue(clue: Clue, board: Board, positions: Positions, people: Person[]): boolean {
+  return clueDef(clue).evaluate(clue, board, positions, people);
 }
 
 export function pruneClue(clue: Clue, ctx: PruneContext): void {

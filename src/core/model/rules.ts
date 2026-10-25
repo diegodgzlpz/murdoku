@@ -59,7 +59,7 @@ export function placementViolations(puzzle: Puzzle, positions: Positions): strin
   for (const c of findConflicts(board, positions)) errors.push(`${c.kind} conflict: ${c.persons.join(',')}`);
   if (murdererOf(board, positions) === null) errors.push('victim is not alone with exactly one person');
   clues.forEach((clue, i) => {
-    if (!evaluateClue(clue, board, positions)) errors.push(`clue #${i} (${clue.kind}) is false`);
+    if (!evaluateClue(clue, board, positions, people)) errors.push(`clue #${i} (${clue.kind}) is false`);
   });
   return errors;
 }

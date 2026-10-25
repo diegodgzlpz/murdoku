@@ -69,6 +69,7 @@ export class State {
  */
 export class Propagator implements PruneContext {
   readonly board: Board;
+  readonly people: Person[];
   readonly personCount: number;
   private state!: State;
   private changed = false;
@@ -81,6 +82,7 @@ export class Propagator implements PruneContext {
     private log: Deduction[] | null = null,
   ) {
     this.board = model.board;
+    this.people = model.people;
     this.personCount = model.personCount;
   }
 

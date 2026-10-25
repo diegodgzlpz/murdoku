@@ -1,4 +1,4 @@
-import type { FurnitureType, PersonId, RoomId } from '../model/types';
+import type { FurnitureType, Gender, PersonId, RoomId } from '../model/types';
 
 export type Direction = 'N' | 'S' | 'E' | 'W';
 
@@ -65,6 +65,32 @@ export interface EmptyRoomCountClue {
   count: number;
 }
 
+/** In row/column `index` (0 = north row / west column). */
+export interface InLineClue {
+  kind: 'inLine';
+  person: PersonId;
+  axis: 'row' | 'col';
+  index: number;
+}
+/** On furniture of that type, and nobody else (victim included) is on furniture of that type. */
+export interface OnlyOnFurnitureClue {
+  kind: 'onlyOnFurniture';
+  person: PersonId;
+  furniture: FurnitureType;
+}
+/** Exactly `count` OTHER people of `gender` (victim included) share the person's room. */
+export interface RoomWithGenderClue {
+  kind: 'roomWithGender';
+  person: PersonId;
+  gender: Gender;
+  count: number;
+}
+/** At least one person (anyone, victim included) is on furniture of that type. */
+export interface SomeoneOnFurnitureClue {
+  kind: 'someoneOnFurniture';
+  furniture: FurnitureType;
+}
+
 export type Clue =
   | InRoomClue
   | NotInRoomClue
@@ -76,7 +102,11 @@ export type Clue =
   | SameRoomClue
   | DifferentRoomClue
   | RelativeClue
-  | EmptyRoomCountClue;
+  | EmptyRoomCountClue
+  | InLineClue
+  | OnlyOnFurnitureClue
+  | RoomWithGenderClue
+  | SomeoneOnFurnitureClue;
 
 export type ClueKind = Clue['kind'];
 export type ClueOfKind<K extends ClueKind> = Extract<Clue, { kind: K }>;

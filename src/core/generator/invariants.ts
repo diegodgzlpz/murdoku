@@ -32,7 +32,7 @@ export function checkLevelInvariants(level: Level): string[] {
   }
   errors.push(...placementViolations(puzzle, solution.positions).map((e) => `solution: ${e}`));
   clues.forEach((c, i) => {
-    if (!evaluateClue(c, board, solution.positions)) errors.push(`clue #${i} false in solution`);
+    if (!evaluateClue(c, board, solution.positions, people)) errors.push(`clue #${i} false in solution`);
     if (cluePersons(c).includes(VICTIM_ID)) errors.push(`clue #${i} mentions the victim`);
   });
 
