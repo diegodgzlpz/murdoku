@@ -14,7 +14,7 @@ import {
   type GenerationParams,
 } from '../core/index';
 import { renderAccuse, renderBoard, renderClues, renderTools } from './render';
-import { check, clickCell, newGame, selectPerson, type GameState, type Mode } from './state';
+import { check, clickCell, newGame, selectPerson, toggleSolution, type GameState, type Mode } from './state';
 
 const $ = <T extends HTMLElement>(id: string) => document.getElementById(id) as T;
 const boardEl = $<HTMLDivElement>('board');
@@ -51,6 +51,9 @@ function render(): void {
   renderClues(cluesEl, state);
   renderTools(toolsEl, state);
   renderAccuse(accuseEl, state);
+  const solutionBtn = $<HTMLButtonElement>('solution');
+  solutionBtn.textContent = state.showSolution ? 'Ocultar solución' : 'Ver solución';
+  solutionBtn.setAttribute('aria-pressed', String(state.showSolution));
   setMessage(state.message?.text ?? '', state.message ? (state.message.ok ? 'ok' : 'err') : '');
   const p = state.level.params;
   let scenario = p.scenarioId;
@@ -116,6 +119,7 @@ accuseEl.addEventListener('click', (e) => {
   update({ ...state, accusation: state.accusation === id ? null : id, message: null });
 });
 $('check').addEventListener('click', () => state && update(check(state)));
+$('solution').addEventListener('click', () => state && update(toggleSolution(state)));
 $('new').addEventListener('click', () => load(readParams(randomSeed())));
 $('load-seed').addEventListener('click', () => load(readParams(seedEl.value.trim() || randomSeed())));
 seedEl.addEventListener('keydown', (e) => {

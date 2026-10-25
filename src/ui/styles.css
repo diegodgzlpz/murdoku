@@ -60,6 +60,7 @@ select, input, textarea {
 .btn:active { transform: translateY(2px); box-shadow: none; }
 .btn.primary { background: var(--accent); border-color: #3e2c74; color: #fff; box-shadow: 0 2px 0 #3e2c74; }
 .btn.wide { width: 100%; padding: 10px; font-size: 17px; }
+.btn.ghost-btn { margin-top: 8px; padding: 7px; font-size: 15px; }
 
 /* ---------- layout ---------- */
 .table {
@@ -146,6 +147,13 @@ img.furn-img { inset: 10%; width: 80%; height: 80%; margin: 0; filter: drop-shad
   text-shadow: 0 0 2px #000, 0 0 2px #000, 0 1px 1px #000;
 }
 .piece.victim b { top: auto; bottom: -6%; right: -6%; left: auto; font-size: calc(var(--cell) * 0.2); }
+/* Solution overlay: ghosts show where people belong; placed pieces get a right/wrong ring. */
+.piece.ghost { opacity: 0.5; filter: grayscale(0.2); }
+.piece.ghost.corner { --size: 42%; inset: 2% 2% auto auto; margin: 0; translate: none; opacity: 0.8; z-index: 4; }
+.piece.ghost.corner b { font-size: calc(var(--cell) * 0.18); }
+.piece.right, .piece.wrong { border-radius: 50%; }
+.piece.right { box-shadow: 0 0 0 2px var(--ok); background: rgba(46, 160, 67, 0.18); }
+.piece.wrong { box-shadow: 0 0 0 2px var(--danger); background: rgba(200, 40, 40, 0.2); }
 /* On an occupiable piece both show: furniture behind, a smaller piece on top. */
 .cell.seat .piece { --size: 60%; translate: 8% 8%; }
 .cell.seat:has(.piece) .furn { opacity: 0.85; }

@@ -87,7 +87,9 @@ export function selectClues(
     if (!best) return null;
     chosen.push(best);
     remaining = bestRemaining;
-    pool = pool.filter((c) => c !== best);
+    const picked: Clue = best;
+    // At most one row/column clue per person: both together would just give away the cell.
+    pool = pool.filter((c) => c !== picked && !(picked.kind === 'inLine' && c.kind === 'inLine' && c.person === picked.person));
   }
 
   // Minimization: drop every clue that is not needed (random order, seeded).

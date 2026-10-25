@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { castForSeed, generateLevel, NAME_POOLS, puzzleClueGroups, VICTIM_NAMES } from '../src/core/index';
 import { AVATAR_COUNT, assignAvatars, avatarSvg } from '../src/ui/avatars';
-import { check, clickCell, conflicts, newGame, selectPerson, type GameState } from '../src/ui/state';
+import { check, clickCell, conflicts, newGame, reviewPlacements, selectPerson, toggleSolution, type GameState } from '../src/ui/state';
 
 const level = generateLevel({ size: 6, seed: 'ui', scenarioId: 'house', difficulty: 'easy' });
 
@@ -120,5 +120,35 @@ describe('cast and avatars', () => {
     }
     for (const g of ['f', 'm'] as const)
       for (let v = 0; v < AVATAR_COUNT[g]; v++) expect(avatarSvg(g, v, '#123456')).toMatch(/^<svg[\s\S]*#123456[\s\S]*<\/svg>$/);
+  });
+});
+
+describe('solution view', () => {
+  it('reviews placements and toggles the overlay', () => {
+    const sol = level.solution.positions;
+    const [a, b] = level.puzzle.people;
+    const wrongCell = (sol[b!.id]! + 1) % (level.puzzle.board.size ** 2);
+    let s: GameState = { ...newGame(level), placements: { [a!.id]: sol[a!.id]!, [b!.id]: wrongCell } };
+    const r = reviewPlacements(s);
+    expect(r.correct).toEqual([a!.id]);
+    expect(r.wrong).toEqual([b!.id]);
+    expect(r.missing).toHaveLength(level.puzzle.people.length - 2);
+    s = toggleSolution(s);
+    expect(s.showSolution).toBe(true);
+    expect(s.message?.ok).toBe(false);
+    expect(s.message?.text).toContain('Mal colocadas');
+    s = toggleSolution(s);
+    expect(s.showSolution).toBe(false);
+    expect(s.message).toBeNull();
+  });
+});
+
+describe('row/column clues', () => {
+  it('a person never gets both a row and a column clue', () => {
+    for (let i = 0; i < 30; i++) {
+      const lvl = generateLevel({ size: 6 + (i % 4), seed: `line-${i}`, scenarioId: 'house', difficulty: 'easy' });
+      const people = lvl.puzzle.clues.flatMap((c) => (c.kind === 'inLine' ? [c.person] : []));
+      expect(new Set(people).size, `seed line-${i}`).toBe(people.length);
+    }
   });
 });

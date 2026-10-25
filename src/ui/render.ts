@@ -21,10 +21,10 @@ function avatarHtml(p: Person, variant: number, size: 'big' | 'small'): string {
 }
 
 /** Board piece: the person icon (suspects tinted with their pawn colour) with the letter on top via CSS. */
-function pieceHtml(p: Person): string {
+function pieceHtml(p: Person, extraClass = ''): string {
   const { fill } = personColor(p.id);
   const icon = personIcon(p.isVictim);
-  return `<span class="piece${p.isVictim ? ' victim' : ''}" style="--fill:${fill};--icon:url('${icon.src64}')"><img ${imgAttrs(icon, 'piece-img')}><b>${p.id}</b></span>`;
+  return `<span class="piece${p.isVictim ? ' victim' : ''}${extraClass}" style="--fill:${fill};--icon:url('${icon.src64}')"><img ${imgAttrs(icon, 'piece-img')}><b>${p.id}</b></span>`;
 }
 
 export function renderBoard(el: HTMLElement, state: GameState): void {
@@ -34,6 +34,7 @@ export function renderBoard(el: HTMLElement, state: GameState): void {
   const bad = new Set<number>();
   for (const c of conflicts(state)) for (const id of c.persons) bad.add(state.placements[id]!);
   const occupant = new Map(Object.entries(state.placements).map(([id, cell]) => [cell!, id]));
+  const solutionAt = new Map(Object.entries(state.level.solution.positions).map(([id, cell]) => [cell, id]));
   // Label each room in its top-left-most cell without furniture (else its first cell), so icons stay visible.
   const labelCell = new Map(
     board.rooms.map((r) => {
@@ -72,9 +73,15 @@ export function renderBoard(el: HTMLElement, state: GameState): void {
       div.classList.add(f.occupiable ? 'seat' : 'blocked');
     }
     const who = occupant.get(cell);
-    if (who) html += pieceHtml(people.find((x) => x.id === who)!);
-    else if (state.marks.has(cell)) html += `<img ${imgAttrs(markIcon(), 'mark')}>`;
-    else {
+    const truth = state.showSolution ? solutionAt.get(cell) : undefined;
+    if (who) {
+      const verdict = !state.showSolution ? '' : truth === who ? ' right' : ' wrong';
+      html += pieceHtml(people.find((x) => x.id === who)!, verdict);
+    }
+    // Solution overlay: a ghost piece wherever the right person is not already placed.
+    if (truth && truth !== who) html += pieceHtml(people.find((x) => x.id === truth)!, who ? ' ghost corner' : ' ghost');
+    else if (!who && state.marks.has(cell)) html += `<img ${imgAttrs(markIcon(), 'mark')}>`;
+    else if (!who) {
       const notes = state.notes.get(cell);
       if (notes?.size) {
         const ids = [...notes].sort((a, b) => order.get(a)! - order.get(b)!);

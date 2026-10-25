@@ -35,6 +35,10 @@ export function checkLevelInvariants(level: Level): string[] {
     if (!evaluateClue(c, board, solution.positions, people)) errors.push(`clue #${i} false in solution`);
     if (cluePersons(c).includes(VICTIM_ID)) errors.push(`clue #${i} mentions the victim`);
   });
+  // A row clue plus a column clue would just hand out the person's cell.
+  const lineClues = clues.filter((c) => c.kind === 'inLine').map((c) => c.person);
+  for (const id of new Set(lineClues))
+    if (lineClues.filter((x) => x === id).length > 1) errors.push(`${id} has both a row and a column clue`);
 
   const murderer = murdererOf(board, solution.positions);
   if (murderer === null || murderer !== solution.murderer) errors.push('murderer mismatch or not unique');
