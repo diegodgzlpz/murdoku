@@ -4,43 +4,67 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Murdoku</title>
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🔍</text></svg>" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;700;800;900&family=Dancing+Script:wght@700&display=swap"
+      rel="stylesheet"
+    />
   </head>
   <body>
-    <header>
-      <strong>Murdoku</strong>
-      <span id="info"></span>
-    </header>
-    <div class="controls">
-      <select id="size"></select>
-      <select id="scenario"></select>
-      <select id="difficulty"></select>
-      <button id="new">Nuevo nivel</button>
-      <input id="seed" placeholder="seed" size="12" />
-      <button id="load-seed">Cargar seed</button>
-      <button id="reset">Reiniciar</button>
-    </div>
-    <div id="tools"></div>
-    <small>Clic: colocar la persona seleccionada (otro clic la quita). Clic derecho: descartar casilla.</small>
-    <main>
-      <div id="board"></div>
-      <section>
-        <h3>Pistas</h3>
-        <ol id="clues" start="0"></ol>
-        <div class="controls">
-          <label>Acusar: <select id="accuse"></select></label>
-          <button id="check">Comprobar</button>
-        </div>
-        <p id="message"></p>
-      </section>
-    </main>
-    <details>
-      <summary>Guardar / cargar JSON</summary>
-      <div class="controls">
-        <button id="export">Exportar</button>
-        <button id="import">Importar</button>
+    <header class="topbar">
+      <div class="brand">
+        <h1>Murdoku</h1>
+        <p id="case-info" class="case-info"></p>
       </div>
-      <textarea id="json"></textarea>
-    </details>
+      <div class="controls">
+        <select id="size" aria-label="Tamaño"></select>
+        <select id="scenario" aria-label="Escenario"></select>
+        <select id="difficulty" aria-label="Dificultad"></select>
+        <button id="new" class="btn primary">Nueva partida</button>
+        <span class="seed-box">
+          <input id="seed" placeholder="seed" aria-label="Seed" />
+          <button id="load-seed" class="btn">Cargar</button>
+        </span>
+        <button id="reset" class="btn">Reiniciar</button>
+        <button id="share" class="btn">Compartir</button>
+      </div>
+    </header>
+
+    <main class="table">
+      <section class="play">
+        <div id="tools" class="tools"></div>
+        <div class="board-frame"><div id="board" class="board"></div></div>
+        <p class="hint">
+          Elige una ficha y pulsa una casilla. <b>Mayús + clic</b> anota la ficha como posible · <b>clic derecho</b> descarta
+          la casilla. Teclas: letra de la persona, <kbd>P</kbd> colocar, <kbd>N</kbd> notas, <kbd>X</kbd> descartar,
+          <kbd>⌫</kbd> borrar.
+        </p>
+      </section>
+
+      <aside class="dossier">
+        <h2>Pistas</h2>
+        <div id="clues" class="cards"></div>
+        <section class="verdict">
+          <h3>¿Quién fue?</h3>
+          <div id="accuse" class="accuse"></div>
+          <button id="check" class="btn primary wide">Resolver el caso</button>
+          <p id="message" role="status"></p>
+        </section>
+      </aside>
+    </main>
+
+    <footer class="footer">
+      <details>
+        <summary>Guardar / cargar partida (JSON)</summary>
+        <div class="controls">
+          <button id="export" class="btn">Exportar</button>
+          <button id="import" class="btn">Importar</button>
+        </div>
+        <textarea id="json" spellcheck="false"></textarea>
+      </details>
+    </footer>
     <script type="module" src="/src/ui/main.ts"></script>
   </body>
 </html>

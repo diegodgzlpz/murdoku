@@ -1,19 +1,204 @@
-/* Provisional, deliberately plain styles. */
-body { font-family: system-ui, sans-serif; margin: 16px; background: #fff; color: #111; }
-header, .controls, #tools { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; margin-bottom: 8px; }
-main { display: flex; flex-wrap: wrap; gap: 24px; align-items: flex-start; }
-#board { display: grid; border: 0; user-select: none; }
-.cell { position: relative; width: 64px; height: 64px; box-sizing: border-box; cursor: pointer; background: #fafafa; }
-.cell.blocked { background: #e6e6e6; }
-.cell.conflict { background: #fbb; }
-.room { position: absolute; top: 1px; left: 2px; font-size: 9px; color: #555; pointer-events: none; }
-.furn { position: absolute; bottom: 2px; right: 3px; font-size: 18px; pointer-events: none; }
-.person { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; font-size: 28px; font-weight: bold; pointer-events: none; }
-.person.victim { color: #c00; }
-.mark { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; font-size: 26px; color: #999; pointer-events: none; }
-button.active { background: #333; color: #fff; }
-#message.ok { color: #070; font-weight: bold; }
-#message.err { color: #b00; font-weight: bold; }
-#clues { max-width: 460px; line-height: 1.5; }
-#json { width: 100%; max-width: 700px; height: 120px; font-family: monospace; font-size: 11px; }
-small { color: #666; }
+/* Board-game / puzzle-book look: pastel floor plan, black walls, character cards with speech bubbles. */
+:root {
+  --page: #dcebe6;
+  --page-deep: #c9ded7;
+  --paper: #fbfaf6;
+  --ink: #1f2328;
+  --muted: #5b6670;
+  --wall: #15171a;
+  --wall-w: 3px;
+  --grid: rgba(255, 255, 255, 0.55);
+  --accent: #6a4fb3;
+  --accent-soft: #ece6f7;
+  --bubble: #efe8f6;
+  --bubble-general: #d8ddf3;
+  --danger: #c22f2f;
+  --ok: #24804f;
+  --cell: min(64px, calc((100vw - 56px) / var(--n, 7)));
+  --radius: 14px;
+  --shadow: 0 2px 0 rgba(0, 0, 0, 0.08), 0 6px 18px rgba(30, 50, 45, 0.12);
+  color-scheme: light;
+}
+
+* { box-sizing: border-box; }
+body {
+  margin: 0;
+  background: radial-gradient(1200px 600px at 20% 0%, #e8f3ef, var(--page) 60%, var(--page-deep));
+  color: var(--ink);
+  font: 16px/1.45 'Nunito', system-ui, sans-serif;
+  min-height: 100vh;
+}
+button, select, input, textarea { font: inherit; color: inherit; }
+kbd {
+  font: 700 0.7em 'Nunito', sans-serif;
+  border: 1px solid rgba(0, 0, 0, 0.2);
+  border-bottom-width: 2px;
+  border-radius: 4px;
+  padding: 0 4px;
+  background: #fff;
+  color: var(--muted);
+}
+
+/* ---------- top bar ---------- */
+.topbar {
+  display: flex; flex-wrap: wrap; gap: 12px 24px; align-items: center; justify-content: space-between;
+  padding: 14px 24px; background: var(--paper); box-shadow: var(--shadow);
+}
+.brand h1 { margin: 0; font-weight: 900; font-size: 30px; letter-spacing: -0.5px; }
+.brand h1::before { content: '🔍 '; font-size: 24px; }
+.case-info { margin: 0; color: var(--muted); font-weight: 700; font-size: 14px; }
+.controls { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+select, input, textarea {
+  border: 2px solid #d5dad7; border-radius: 10px; background: #fff; padding: 6px 10px;
+}
+.seed-box { display: inline-flex; gap: 4px; }
+.seed-box input { width: 110px; }
+.btn {
+  border: 2px solid var(--ink); background: #fff; border-radius: 999px; padding: 6px 14px;
+  font-weight: 800; cursor: pointer; box-shadow: 0 2px 0 var(--ink); transition: transform 0.05s;
+}
+.btn:active { transform: translateY(2px); box-shadow: none; }
+.btn.primary { background: var(--accent); border-color: #3e2c74; color: #fff; box-shadow: 0 2px 0 #3e2c74; }
+.btn.wide { width: 100%; padding: 10px; font-size: 17px; }
+
+/* ---------- layout ---------- */
+.table {
+  display: grid; grid-template-columns: auto minmax(320px, 1fr); gap: 28px;
+  max-width: 1280px; margin: 24px auto; padding: 0 24px; align-items: start;
+}
+@media (max-width: 980px) {
+  .table { grid-template-columns: 1fr; padding: 0 16px; }
+  .topbar { padding: 12px 16px; }
+}
+.play { display: flex; flex-direction: column; gap: 14px; align-items: center; }
+.hint { max-width: calc(var(--cell) * var(--n, 7) + 40px); margin: 0; color: var(--muted); font-size: 13px; }
+
+/* ---------- tools ---------- */
+.tools { display: flex; flex-direction: column; gap: 10px; align-items: center; }
+.pawns, .modes { display: flex; flex-wrap: wrap; gap: 6px; justify-content: center; }
+.pawn {
+  display: inline-flex; align-items: center; gap: 6px; border: 2px solid transparent; background: var(--paper);
+  border-radius: 999px; padding: 3px 10px 3px 3px; cursor: pointer; font-weight: 700; font-size: 14px; box-shadow: var(--shadow);
+}
+.pawn.active { border-color: var(--ink); }
+.pawn.placed span::after { content: ' ✓'; color: var(--ok); }
+.modes { background: var(--paper); border-radius: 999px; padding: 4px; box-shadow: var(--shadow); }
+.mode { border: 0; background: transparent; border-radius: 999px; padding: 5px 12px; cursor: pointer; font-weight: 800; display: inline-flex; gap: 6px; align-items: center; }
+.mode.active { background: var(--ink); color: #fff; }
+.mode.active kbd { background: transparent; color: #ddd; border-color: #777; }
+
+/* ---------- board ---------- */
+.board-frame { background: var(--paper); padding: 14px; border-radius: 18px; box-shadow: var(--shadow); }
+.board {
+  display: grid; grid-template-columns: repeat(var(--n), var(--cell)); grid-auto-rows: var(--cell);
+  border: 2px solid var(--wall); user-select: none;
+}
+.board[data-mode='note'] .cell { cursor: cell; }
+.cell { position: relative; cursor: pointer; overflow: visible; }
+.cell:hover { filter: brightness(1.05) saturate(1.1); }
+/* Floor textures, layered over the room tint. */
+.floor-0 { background-image: linear-gradient(rgba(255,255,255,.45) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,.45) 1px, transparent 1px); background-size: 50% 50%; }
+.floor-1 { background-image: linear-gradient(rgba(255,255,255,.5) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,.5) 1px, transparent 1px); background-size: 50% 33.4%, 50% 66.8%; }
+.floor-2 { background-image: repeating-linear-gradient(90deg, rgba(0,0,0,.05) 0 1px, transparent 1px 25%); }
+.floor-3 { background-image: repeating-linear-gradient(45deg, rgba(255,255,255,.35) 0 2px, transparent 2px 9px); }
+.cell.conflict { box-shadow: inset 0 0 0 3px var(--danger); }
+.cell.conflict .token { animation: shake 0.3s; }
+@keyframes shake { 25% { translate: -2px 0; } 75% { translate: 2px 0; } }
+
+.room {
+  position: absolute; top: 3px; left: 3px; z-index: 5; pointer-events: none; white-space: nowrap;
+  font: 900 calc(var(--cell) * 0.14) / 1 'Nunito', sans-serif; text-transform: uppercase; letter-spacing: 0.3px;
+  background: #fff; border: 1.5px solid var(--wall); border-radius: 999px; padding: 2px 6px;
+}
+.furn {
+  position: absolute; inset: 0; display: grid; place-items: center; pointer-events: none;
+  font-size: calc(var(--cell) * 0.5); filter: drop-shadow(0 2px 1px rgba(0,0,0,.25));
+}
+.cell.blocked .furn { background: rgba(60, 60, 70, 0.12); }
+.cell .token.on-board + .furn, .cell:has(.on-board) .furn { opacity: 0.35; }
+.window {
+  position: absolute; z-index: 4; pointer-events: none; background: #fff; border: 2px solid var(--wall); border-radius: 4px;
+}
+.w-N, .w-S { left: 22%; width: 56%; height: 9px; }
+.w-E, .w-W { top: 22%; height: 56%; width: 9px; }
+.w-N { top: calc(-1 * var(--wall-w) - 4px); }
+.w-S { bottom: calc(-1 * var(--wall-w) - 4px); }
+.w-W { left: calc(-1 * var(--wall-w) - 4px); }
+.w-E { right: calc(-1 * var(--wall-w) - 4px); }
+.mark {
+  position: absolute; inset: 0; display: grid; place-items: center; pointer-events: none;
+  font-size: calc(var(--cell) * 0.5); font-weight: 900; color: rgba(40, 40, 50, 0.45);
+}
+.notes {
+  position: absolute; inset: 4px; display: grid; grid-template-columns: repeat(3, 1fr); align-content: center; justify-items: center;
+  pointer-events: none; font-size: calc(var(--cell) * 0.2); font-weight: 900; line-height: 1.1; z-index: 2;
+}
+.notes b { background: rgba(255, 255, 255, 0.75); border-radius: 4px; padding: 0 2px; }
+
+/* ---------- tokens (pawns) ---------- */
+.token {
+  --size: 26px;
+  display: inline-grid; place-items: center; width: var(--size); height: var(--size); border-radius: 50%; flex: none;
+  background: radial-gradient(circle at 35% 30%, rgba(255,255,255,.6), transparent 45%), var(--fill);
+  color: var(--ink); border: 2px solid rgba(0,0,0,.45); box-shadow: 0 2px 0 rgba(0,0,0,.3);
+  font: 900 calc(var(--size) * 0.5) / 1 'Nunito', sans-serif; position: relative;
+}
+.token.victim { border-color: var(--danger); }
+.token.on-board { --size: calc(var(--cell) * 0.66); position: absolute; inset: 0; margin: auto; z-index: 3; }
+.token.big { --size: 58px; }
+.token.general { --fill: #fff; --ink: var(--ink); }
+
+/* ---------- clue cards ---------- */
+.dossier h2, .verdict h3 { margin: 0 0 12px; font-weight: 900; }
+.cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); gap: 14px; }
+.card { display: flex; gap: 10px; align-items: flex-start; }
+.portrait {
+  position: relative; flex: none; width: 92px; padding: 8px 8px 4px; background: #fff; text-align: center;
+  border: 1px solid #e3e3e3; box-shadow: var(--shadow); rotate: -1.5deg;
+}
+.card:nth-child(even) .portrait { rotate: 1.5deg; }
+.portrait .token.big { margin: 4px auto 0; }
+.portrait .name { display: block; font: 700 21px/1.2 'Dancing Script', cursive; margin-top: 4px; overflow-wrap: anywhere; }
+.portrait .placed {
+  position: absolute; top: -8px; right: -8px; width: 22px; height: 22px; border-radius: 50%;
+  background: var(--ok); color: #fff; display: grid; place-items: center; font-size: 13px; font-weight: 900;
+}
+.card.victim .token.big::after {
+  content: ''; position: absolute; inset: -6px;
+  background:
+    linear-gradient(45deg, transparent 46%, var(--danger) 46% 54%, transparent 54%),
+    linear-gradient(-45deg, transparent 46%, var(--danger) 46% 54%, transparent 54%);
+}
+.bubble {
+  position: relative; flex: 1; background: var(--bubble); border-radius: var(--radius); padding: 10px 12px;
+  font-size: 14.5px; box-shadow: var(--shadow); margin-top: 14px;
+}
+.bubble::before {
+  content: ''; position: absolute; left: -8px; top: 16px; border: 8px solid transparent; border-left: 0; border-right-color: var(--bubble);
+}
+.bubble p { margin: 0; }
+.bubble p + p { margin-top: 6px; padding-top: 6px; border-top: 1px dashed rgba(0, 0, 0, 0.15); }
+.bubble .empty { color: var(--muted); font-style: italic; }
+.card.victim .bubble strong { display: block; }
+.card.general { align-items: center; }
+.card.general .lens { font-size: 30px; flex: none; }
+.card.general .bubble { background: var(--bubble-general); margin-top: 0; font-weight: 700; }
+.card.general .bubble::before { border-right-color: var(--bubble-general); }
+
+/* ---------- verdict ---------- */
+.verdict { margin-top: 22px; background: var(--paper); border-radius: 18px; padding: 16px; box-shadow: var(--shadow); }
+.verdict h3::after { content: ' El asesino es…'; font-weight: 400; color: var(--muted); font-size: 15px; }
+.accuse { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 12px; }
+.suspect {
+  display: inline-flex; align-items: center; gap: 6px; border: 2px solid #ddd; background: #fff; border-radius: 999px;
+  padding: 3px 10px 3px 3px; cursor: pointer; font-weight: 700; font-size: 14px;
+}
+.suspect.active { border-color: var(--danger); background: #fdeeee; }
+#message { min-height: 1.4em; margin: 10px 0 0; font-weight: 800; }
+#message.ok { color: var(--ok); }
+#message.err { color: var(--danger); }
+
+/* ---------- footer ---------- */
+.footer { max-width: 1280px; margin: 0 auto 32px; padding: 0 24px; color: var(--muted); }
+.footer summary { cursor: pointer; font-weight: 700; }
+.footer textarea { width: 100%; height: 140px; margin-top: 8px; font: 12px/1.4 ui-monospace, monospace; }

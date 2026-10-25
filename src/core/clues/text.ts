@@ -20,4 +20,6 @@ export function roomPhrase(board: Board, id: RoomId): string {
   return `${room.article} ${lowerFirst(room.name)}`;
 }
 
-export const VICTIM_CLUE_TEXT = 'La víctima estaba a solas con su asesino.';
+export function victimClueText(victimName: string): string {
+  return `${victimName}, la víctima, estaba a solas con su asesino.`;
+}

@@ -1,4 +1,4 @@
-import { FURNITURE, indexBoard, neighborAt, puzzleClueTexts, type Level, type Side } from '../core/index';
+import { FURNITURE, indexBoard, neighborAt, puzzleClueGroups, type Level, type Side } from '../core/index';
 
 const ROOM_LABELS = 'abcdefghijklmnopqrstuvwxyz';
 
@@ -67,7 +67,11 @@ export function renderLevel(level: Level, showSolution: boolean): string {
   out.push('Personas: ' + people.map((x) => `${x.id}=${x.name}`).join(', '));
   out.push('');
   out.push('Pistas:');
-  puzzleClueTexts(level.puzzle).forEach((t, i) => out.push(`  ${i}. ${t}`));
+  for (const group of puzzleClueGroups(level.puzzle)) {
+    out.push(group.person ? `  ${group.person.id} · ${group.person.name}` : '  General');
+    if (!group.lines.length) out.push('      (sin pistas)');
+    for (const line of group.lines) out.push(`      - ${line.text}`);
+  }
   if (showSolution) {
     const m = people.find((x) => x.id === level.solution.murderer)!;
     out.push('');

@@ -1,41 +1,49 @@
 import './styles.css';
 import {
+  checkLevelInvariants,
   DIFFICULTIES,
   generateLevel,
+  getScenario,
   levelFromJson,
   levelToJson,
-  checkLevelInvariants,
+  MAX_SIZE,
+  MIN_SIZE,
   randomSeed,
   SCENARIOS,
-  MIN_SIZE,
-  MAX_SIZE,
   type Difficulty,
   type GenerationParams,
 } from '../core/index';
 import { renderAccuse, renderBoard, renderClues, renderTools } from './render';
-import { check, clickCell, newGame, toggleMark, type GameState } from './state';
+import { check, clickCell, newGame, selectPerson, type GameState, type Mode } from './state';
 
 const $ = <T extends HTMLElement>(id: string) => document.getElementById(id) as T;
 const boardEl = $<HTMLDivElement>('board');
-const cluesEl = $<HTMLOListElement>('clues');
+const cluesEl = $<HTMLDivElement>('clues');
 const toolsEl = $<HTMLDivElement>('tools');
-const accuseEl = $<HTMLSelectElement>('accuse');
+const accuseEl = $<HTMLDivElement>('accuse');
 const msgEl = $<HTMLParagraphElement>('message');
-const infoEl = $<HTMLSpanElement>('info');
+const infoEl = $<HTMLParagraphElement>('case-info');
 const sizeEl = $<HTMLSelectElement>('size');
 const scenarioEl = $<HTMLSelectElement>('scenario');
 const difficultyEl = $<HTMLSelectElement>('difficulty');
 const seedEl = $<HTMLInputElement>('seed');
 const jsonEl = $<HTMLTextAreaElement>('json');
 
+const DIFF_NAMES: Record<Difficulty, string> = { easy: 'Fácil', medium: 'Media', hard: 'Difícil' };
 sizeEl.innerHTML = Array.from({ length: MAX_SIZE - MIN_SIZE + 1 }, (_, i) => MIN_SIZE + i)
   .map((n) => `<option value="${n}" ${n === 7 ? 'selected' : ''}>${n}×${n}</option>`)
   .join('');
 scenarioEl.innerHTML = SCENARIOS.map((s) => `<option value="${s.id}">${s.name}</option>`).join('');
-const DIFF_NAMES: Record<Difficulty, string> = { easy: 'Fácil', medium: 'Media', hard: 'Difícil' };
-difficultyEl.innerHTML = DIFFICULTIES.map((d) => `<option value="${d}" ${d === 'medium' ? 'selected' : ''}>${DIFF_NAMES[d]}</option>`).join('');
+difficultyEl.innerHTML = DIFFICULTIES.map(
+  (d) => `<option value="${d}" ${d === 'medium' ? 'selected' : ''}>${DIFF_NAMES[d]}</option>`,
+).join('');
 
 let state: GameState | null = null;
+
+function setMessage(text: string, kind: 'ok' | 'err' | '' = ''): void {
+  msgEl.textContent = text;
+  msgEl.className = kind;
+}
 
 function render(): void {
   if (!state) return;
@@ -43,78 +51,86 @@ function render(): void {
   renderClues(cluesEl, state);
   renderTools(toolsEl, state);
   renderAccuse(accuseEl, state);
-  msgEl.textContent = state.message?.text ?? '';
-  msgEl.className = state.message ? (state.message.ok ? 'ok' : 'err') : '';
+  setMessage(state.message?.text ?? '', state.message ? (state.message.ok ? 'ok' : 'err') : '');
   const p = state.level.params;
-  infoEl.textContent = `seed: ${p.seed} · ${p.size}×${p.size} · ${p.scenarioId} · ${p.difficulty} · ${state.level.stats.ms} ms`;
+  let scenario = p.scenarioId;
+  try {
+    scenario = getScenario(p.scenarioId).name;
+  } catch {
+    /* unknown scenario in imported JSON: show its id */
+  }
+  infoEl.textContent = `Caso «${p.seed}» · ${scenario} · ${p.size}×${p.size} · ${DIFF_NAMES[p.difficulty] ?? p.difficulty}`;
+}
+
+function update(next: GameState): void {
+  state = next;
+  render();
 }
 
 function readParams(seed: string): GenerationParams {
-  return {
-    size: Number(sizeEl.value),
-    seed,
-    scenarioId: scenarioEl.value,
-    difficulty: difficultyEl.value as Difficulty,
-  };
+  return { size: Number(sizeEl.value), seed, scenarioId: scenarioEl.value, difficulty: difficultyEl.value as Difficulty };
+}
+
+function shareUrl(params: GenerationParams): string {
+  const q = new URLSearchParams({ ...params, size: String(params.size) });
+  return `${location.origin}${location.pathname}#${q}`;
 }
 
 function load(params: GenerationParams): void {
-  msgEl.textContent = 'Generando…';
-  msgEl.className = '';
+  setMessage('Preparando el caso…');
   // Let the browser paint the message before the (synchronous) generation.
   setTimeout(() => {
     try {
-      state = newGame(generateLevel(params));
+      const level = generateLevel(params);
       seedEl.value = params.seed;
-      history.replaceState(null, '', `#${new URLSearchParams({ ...params, size: String(params.size) })}`);
-      render();
+      history.replaceState(null, '', shareUrl(params));
+      update(newGame(level));
     } catch (e) {
-      msgEl.textContent = `Error al generar: ${(e as Error).message}`;
-      msgEl.className = 'err';
+      setMessage(`Error al generar: ${(e as Error).message}`, 'err');
     }
   }, 10);
 }
 
+const cellOf = (e: Event) => (e.target as HTMLElement).closest<HTMLElement>('.cell')?.dataset.cell;
+
 boardEl.addEventListener('click', (e) => {
-  const cell = (e.target as HTMLElement).closest<HTMLElement>('.cell')?.dataset.cell;
-  if (state && cell !== undefined) {
-    state = clickCell(state, Number(cell));
-    render();
-  }
+  const cell = cellOf(e);
+  if (!state || cell === undefined) return;
+  update(clickCell(state, Number(cell), e.shiftKey ? 'note' : state.mode));
 });
 boardEl.addEventListener('contextmenu', (e) => {
-  const cell = (e.target as HTMLElement).closest<HTMLElement>('.cell')?.dataset.cell;
-  if (state && cell !== undefined) {
-    e.preventDefault();
-    state = toggleMark(state, Number(cell));
-    render();
-  }
+  const cell = cellOf(e);
+  if (!state || cell === undefined) return;
+  e.preventDefault();
+  update(clickCell(state, Number(cell), 'mark'));
 });
 toolsEl.addEventListener('click', (e) => {
-  const tool = (e.target as HTMLElement).closest<HTMLElement>('button')?.dataset.tool;
-  if (!state || !tool) return;
-  state = {
-    ...state,
-    tool: tool.startsWith('person:') ? { kind: 'person', id: tool.slice(7) } : { kind: tool as 'mark' | 'erase' },
-  };
-  render();
-});
-accuseEl.addEventListener('change', () => {
   if (!state) return;
-  state = { ...state, accusation: accuseEl.value || null, message: null };
-  render();
+  const btn = (e.target as HTMLElement).closest<HTMLElement>('button');
+  if (btn?.dataset.person) update(selectPerson(state, btn.dataset.person));
+  else if (btn?.dataset.mode) update({ ...state, mode: btn.dataset.mode as Mode });
 });
-$('check').addEventListener('click', () => {
-  if (!state) return;
-  state = check(state);
-  render();
+accuseEl.addEventListener('click', (e) => {
+  const id = (e.target as HTMLElement).closest<HTMLElement>('button')?.dataset.accuse;
+  if (!state || !id) return;
+  update({ ...state, accusation: state.accusation === id ? null : id, message: null });
 });
+$('check').addEventListener('click', () => state && update(check(state)));
 $('new').addEventListener('click', () => load(readParams(randomSeed())));
 $('load-seed').addEventListener('click', () => load(readParams(seedEl.value.trim() || randomSeed())));
-$('reset').addEventListener('click', () => {
+seedEl.addEventListener('keydown', (e) => {
+  if (e.key === 'Enter') load(readParams(seedEl.value.trim() || randomSeed()));
+});
+$('reset').addEventListener('click', () => state && update(newGame(state.level)));
+$('share').addEventListener('click', async () => {
   if (!state) return;
-  state = newGame(state.level);
-  render();
+  const url = shareUrl(state.level.params);
+  try {
+    await navigator.clipboard.writeText(url);
+    setMessage('Enlace del caso copiado al portapapeles.', 'ok');
+  } catch {
+    setMessage(url);
+  }
 });
 $('export').addEventListener('click', () => {
   if (state) jsonEl.value = levelToJson(state.level, true);
@@ -124,13 +140,24 @@ $('import').addEventListener('click', () => {
     const level = levelFromJson(jsonEl.value);
     const errors = checkLevelInvariants(level);
     if (errors.length) throw new Error(errors.join('; '));
-    state = newGame(level);
     seedEl.value = level.params.seed;
-    render();
+    update(newGame(level));
   } catch (e) {
-    msgEl.textContent = `JSON no válido: ${(e as Error).message}`;
-    msgEl.className = 'err';
+    setMessage(`JSON no válido: ${(e as Error).message}`, 'err');
   }
+});
+
+// Keyboard: person letters select a pawn; P/N/X/Backspace switch mode.
+document.addEventListener('keydown', (e) => {
+  if (!state || e.ctrlKey || e.metaKey || e.altKey) return;
+  if ((e.target as HTMLElement).closest('input, textarea, select')) return;
+  const key = e.key.toUpperCase();
+  const person = state.level.puzzle.people.find((p) => p.id === key);
+  const modes: Record<string, Mode> = { P: 'place', N: 'note', X: 'mark', BACKSPACE: 'erase', DELETE: 'erase' };
+  if (person) update(selectPerson(state, person.id));
+  else if (modes[key]) update({ ...state, mode: modes[key] });
+  else return;
+  e.preventDefault();
 });
 
 // Initial level: from the URL hash (shareable) or a random seed.
