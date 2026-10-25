@@ -27,7 +27,30 @@ export type FurnitureType =
   | 'bathtub'
   | 'wardrobe'
   | 'umbrella'
-  | 'rack';
+  | 'rack'
+  | 'armchair'
+  | 'toilet'
+  | 'shower'
+  | 'treadmill'
+  | 'exerciseBike'
+  | 'weightBench'
+  | 'yogaMat'
+  | 'rowingMachine'
+  | 'sink'
+  | 'washer'
+  | 'towelRail'
+  | 'laundryBasket'
+  | 'display'
+  | 'checkout'
+  | 'cart'
+  | 'clothesTable'
+  | 'mannequin'
+  | 'basket'
+  | 'securityGate'
+  | 'dumbbellRack'
+  | 'punchingBag'
+  | 'kettlebells'
+  | 'lockers';
 
 export interface Room {
   id: RoomId;

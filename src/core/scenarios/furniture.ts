@@ -15,6 +15,7 @@ export interface FurnitureDef {
 const SIT = { m: 'sentado', f: 'sentada', prep: 'en' };
 const LIE = { m: 'tumbado', f: 'tumbada', prep: 'en' };
 const STAND = { m: 'de pie', f: 'de pie', prep: 'sobre' };
+const STAND_IN = { m: 'de pie', f: 'de pie', prep: 'en' };
 
 export const FURNITURE: Record<FurnitureType, FurnitureDef> = {
   bed: { type: 'bed', occupiable: true, withArticle: 'una cama', posture: LIE, glyph: '🛏️', letter: 'b' },
@@ -36,6 +37,29 @@ export const FURNITURE: Record<FurnitureType, FurnitureDef> = {
   wardrobe: { type: 'wardrobe', occupiable: false, withArticle: 'un armario', glyph: '🚪', letter: 'A' },
   umbrella: { type: 'umbrella', occupiable: false, withArticle: 'una sombrilla', glyph: '⛱️', letter: 'Y' },
   rack: { type: 'rack', occupiable: false, withArticle: 'un perchero', glyph: '🧥', letter: 'R' },
+  armchair: { type: 'armchair', occupiable: true, withArticle: 'un sillón', posture: SIT, glyph: '💺', letter: 'a' },
+  toilet: { type: 'toilet', occupiable: true, withArticle: 'un inodoro', posture: SIT, glyph: '🚽', letter: 'i' },
+  shower: { type: 'shower', occupiable: true, withArticle: 'una ducha', posture: STAND_IN, glyph: '🚿', letter: 'd' },
+  treadmill: { type: 'treadmill', occupiable: true, withArticle: 'una cinta de correr', posture: STAND, glyph: '🏃', letter: 't' },
+  exerciseBike: { type: 'exerciseBike', occupiable: true, withArticle: 'una bicicleta estática', posture: SIT, glyph: '🚲', letter: 'e' },
+  weightBench: { type: 'weightBench', occupiable: true, withArticle: 'un banco de pesas', posture: LIE, glyph: '🏋️', letter: 'w' },
+  yogaMat: { type: 'yogaMat', occupiable: true, withArticle: 'una esterilla', posture: STAND, glyph: '🧘', letter: 'y' },
+  rowingMachine: { type: 'rowingMachine', occupiable: true, withArticle: 'una máquina de remo', posture: SIT, glyph: '🚣', letter: 'm' },
+  sink: { type: 'sink', occupiable: false, withArticle: 'un lavabo', glyph: '🚰', letter: 'L' },
+  washer: { type: 'washer', occupiable: false, withArticle: 'una lavadora', glyph: '🫧', letter: 'W' },
+  towelRail: { type: 'towelRail', occupiable: false, withArticle: 'un toallero', glyph: '🧻', letter: 'H' },
+  laundryBasket: { type: 'laundryBasket', occupiable: false, withArticle: 'un cesto de la ropa', glyph: '🧺', letter: 'C' },
+  display: { type: 'display', occupiable: false, withArticle: 'un expositor', glyph: '🗄️', letter: 'I' },
+  checkout: { type: 'checkout', occupiable: false, withArticle: 'una caja registradora', glyph: '🧾', letter: 'K' },
+  cart: { type: 'cart', occupiable: false, withArticle: 'un carrito', glyph: '🛒', letter: 'Q' },
+  clothesTable: { type: 'clothesTable', occupiable: false, withArticle: 'una mesa de ropa', glyph: '👕', letter: '#' },
+  mannequin: { type: 'mannequin', occupiable: false, withArticle: 'un maniquí', glyph: '👗', letter: 'N' },
+  basket: { type: 'basket', occupiable: false, withArticle: 'una cesta', glyph: '🛍️', letter: 'G' },
+  securityGate: { type: 'securityGate', occupiable: false, withArticle: 'un arco antirrobo', glyph: '🚧', letter: 'Z' },
+  dumbbellRack: { type: 'dumbbellRack', occupiable: false, withArticle: 'un mancuernero', glyph: '💪', letter: 'D' },
+  punchingBag: { type: 'punchingBag', occupiable: false, withArticle: 'un saco de boxeo', glyph: '🥊', letter: 'X' },
+  kettlebells: { type: 'kettlebells', occupiable: false, withArticle: 'unas pesas rusas', glyph: '🔔', letter: 'J' },
+  lockers: { type: 'lockers', occupiable: false, withArticle: 'unas taquillas', glyph: '🔐', letter: 'V' },
 };
 
 export function postureText(type: FurnitureType, gender: Gender): string {

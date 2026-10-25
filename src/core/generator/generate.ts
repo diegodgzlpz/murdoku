@@ -1,4 +1,4 @@
-import { createPeople, MAX_SIZE, victimForSeed } from '../model/people';
+import { castForSeed, MAX_SIZE } from '../model/people';
 import type { Difficulty, GenerationParams, Level, Puzzle } from '../model/types';
 import { createRng } from '../rng/rng';
 import { getScenario, SCENARIOS } from '../scenarios/catalog';
@@ -54,7 +54,7 @@ export function generateLevel(params: GenerationParams, options: GenerateOptions
   const start = Date.now();
   const deadline = start + timeoutMs;
   const root = createRng(`murdoku|${seed}|${size}|${scenarioId}|${difficulty}`);
-  const people = createPeople(size, victimForSeed(seed));
+  const people = castForSeed(size, seed);
   const cells = size * size;
 
   for (let attempt = 1; attempt <= maxAttempts; attempt++) {

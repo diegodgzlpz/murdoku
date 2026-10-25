@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import { generateLevel, puzzleClueGroups, VICTIM_NAMES } from '../src/core/index';
+import { castForSeed, generateLevel, NAME_POOLS, puzzleClueGroups, VICTIM_NAMES } from '../src/core/index';
+import { AVATAR_COUNT, assignAvatars, avatarSvg } from '../src/ui/avatars';
 import { check, clickCell, conflicts, newGame, selectPerson, type GameState } from '../src/ui/state';
 
 const level = generateLevel({ size: 6, seed: 'ui', scenarioId: 'house', difficulty: 'easy' });
@@ -80,5 +81,44 @@ describe('clue groups', () => {
     expect(victim.id).toBe('V');
     expect(VICTIM_NAMES.map((v) => v.name)).toContain(victim.name);
     expect(victim.name.startsWith('V')).toBe(true);
+  });
+});
+
+describe('cast and avatars', () => {
+  it('draws one name per letter from its pool, deterministic by seed', () => {
+    const seeds = Array.from({ length: 40 }, (_, i) => `cast-${i}`);
+    const genders = new Set<string>();
+    for (const seed of seeds) {
+      const cast = castForSeed(9, seed);
+      expect(castForSeed(9, seed)).toEqual(cast);
+      for (const p of cast) {
+        expect(p.name[0]!.normalize('NFD')[0]).toBe(p.id);
+        expect(NAME_POOLS[p.id]).toContainEqual({ name: p.name, gender: p.gender });
+        genders.add(`${p.id}${p.gender}`);
+      }
+    }
+    // Both genders show up for every letter across seeds.
+    expect(genders.size).toBe(18);
+    const names = new Set(seeds.map((s) => castForSeed(9, s).map((p) => p.name).join()));
+    expect(names.size).toBeGreaterThan(30);
+  });
+
+  it('generated levels use the seeded cast', () => {
+    const lvl = generateLevel({ size: 7, seed: 'cast-lvl', scenarioId: 'house', difficulty: 'medium' });
+    expect(lvl.puzzle.people).toEqual(castForSeed(7, 'cast-lvl'));
+  });
+
+  it('assigns distinct avatars within each gender and renders an SVG', () => {
+    for (let i = 0; i < 40; i++) {
+      const cast = castForSeed(9, `av-${i}`);
+      const avatars = assignAvatars(cast);
+      for (const g of ['f', 'm'] as const) {
+        const group = cast.filter((p) => p.gender === g);
+        const used = new Set(group.map((p) => avatars.get(p.id)));
+        expect(used.size).toBe(Math.min(group.length, AVATAR_COUNT[g]));
+      }
+    }
+    for (const g of ['f', 'm'] as const)
+      for (let v = 0; v < AVATAR_COUNT[g]; v++) expect(avatarSvg(g, v, '#123456')).toMatch(/^<svg[\s\S]*#123456[\s\S]*<\/svg>$/);
   });
 });

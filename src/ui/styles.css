@@ -102,33 +102,53 @@ select, input, textarea {
 .floor-2 { background-image: repeating-linear-gradient(90deg, rgba(0,0,0,.05) 0 1px, transparent 1px 25%); }
 .floor-3 { background-image: repeating-linear-gradient(45deg, rgba(255,255,255,.35) 0 2px, transparent 2px 9px); }
 .cell.conflict { box-shadow: inset 0 0 0 3px var(--danger); }
-.cell.conflict .token { animation: shake 0.3s; }
+.cell.conflict .piece { animation: shake 0.3s; }
 @keyframes shake { 25% { translate: -2px 0; } 75% { translate: 2px 0; } }
 
 .room {
-  position: absolute; top: 3px; left: 3px; z-index: 5; pointer-events: none; white-space: nowrap;
-  font: 900 calc(var(--cell) * 0.14) / 1 'Nunito', sans-serif; text-transform: uppercase; letter-spacing: 0.3px;
-  background: #fff; border: 1.5px solid var(--wall); border-radius: 999px; padding: 2px 6px;
+  /* Straddles the top wall of its cell so it hides as little of the cell as possible. */
+  position: absolute; top: 0; left: 2px; translate: 0 -50%; z-index: 5; pointer-events: none; white-space: nowrap;
+  font: 900 max(6.5px, calc(var(--cell) * 0.13)) / 1 'Nunito', sans-serif; text-transform: uppercase; letter-spacing: 0.2px;
+  background: #fff; border: 1.5px solid var(--wall); border-radius: 999px; padding: 1px 5px;
 }
 .furn {
   position: absolute; inset: 0; display: grid; place-items: center; pointer-events: none;
   font-size: calc(var(--cell) * 0.5); filter: drop-shadow(0 2px 1px rgba(0,0,0,.25));
 }
-.cell.blocked .furn { background: rgba(60, 60, 70, 0.12); }
-.cell .token.on-board + .furn, .cell:has(.on-board) .furn { opacity: 0.35; }
-.window {
-  position: absolute; z-index: 4; pointer-events: none; background: #fff; border: 2px solid var(--wall); border-radius: 4px;
+.cell.blocked { background-image: linear-gradient(rgba(60, 60, 70, 0.1), rgba(60, 60, 70, 0.1)); }
+/* Furniture icon: centred at ~80 % of the cell. */
+img.furn-img { inset: 10%; width: 80%; height: 80%; margin: 0; filter: drop-shadow(0 1px 1px rgba(0,0,0,.25)); user-select: none; }
+/* Window icon sits on the wall line of its side, rotated to face outwards. */
+.window-icon {
+  position: absolute; z-index: 4; pointer-events: none; width: 44%; height: 44%; left: 28%; top: 28%;
+  filter: drop-shadow(0 1px 1px rgba(0,0,0,.3));
 }
-.w-N, .w-S { left: 22%; width: 56%; height: 9px; }
-.w-E, .w-W { top: 22%; height: 56%; width: 9px; }
-.w-N { top: calc(-1 * var(--wall-w) - 4px); }
-.w-S { bottom: calc(-1 * var(--wall-w) - 4px); }
-.w-W { left: calc(-1 * var(--wall-w) - 4px); }
-.w-E { right: calc(-1 * var(--wall-w) - 4px); }
-.mark {
-  position: absolute; inset: 0; display: grid; place-items: center; pointer-events: none;
-  font-size: calc(var(--cell) * 0.5); font-weight: 900; color: rgba(40, 40, 50, 0.45);
+.window-icon.w-N { top: 0; translate: 0 -50%; }
+.window-icon.w-S { top: auto; bottom: 0; translate: 0 50%; rotate: 180deg; }
+.window-icon.w-E { left: auto; right: 0; translate: 50% 0; rotate: 90deg; }
+.window-icon.w-W { left: 0; translate: -50% 0; rotate: -90deg; }
+.mark { position: absolute; inset: 26%; width: 48%; height: 48%; pointer-events: none; opacity: 0.55; }
+
+/* Person piece: grey icon tinted with the pawn colour, letter overlaid (never baked into the image). */
+.piece {
+  --size: 76%;
+  position: absolute; z-index: 3; inset: 0; margin: auto; width: var(--size); height: var(--size);
+  isolation: isolate; pointer-events: none; filter: drop-shadow(0 2px 1px rgba(0,0,0,.35));
 }
+.piece-img { display: block; width: 100%; height: 100%; }
+.piece:not(.victim)::after {
+  content: ''; position: absolute; inset: 0; background: var(--fill); mix-blend-mode: color;
+  -webkit-mask: var(--icon) center / contain no-repeat; mask: var(--icon) center / contain no-repeat;
+}
+.piece b {
+  position: absolute; z-index: 1; left: 0; right: 0; top: 54%; text-align: center;
+  font: 900 calc(var(--cell) * 0.26) / 1 'Nunito', sans-serif; color: #fff;
+  text-shadow: 0 0 2px #000, 0 0 2px #000, 0 1px 1px #000;
+}
+.piece.victim b { top: auto; bottom: -6%; right: -6%; left: auto; font-size: calc(var(--cell) * 0.2); }
+/* On an occupiable piece both show: furniture behind, a smaller piece on top. */
+.cell.seat .piece { --size: 60%; translate: 8% 8%; }
+.cell.seat:has(.piece) .furn { opacity: 0.85; }
 .notes {
   position: absolute; inset: 4px; display: grid; grid-template-columns: repeat(3, 1fr); align-content: center; justify-items: center;
   pointer-events: none; font-size: calc(var(--cell) * 0.2); font-weight: 900; line-height: 1.1; z-index: 2;
@@ -148,6 +168,19 @@ select, input, textarea {
 .token.big { --size: 58px; }
 .token.general { --fill: #fff; --ink: var(--ink); }
 
+/* ---------- avatars ---------- */
+.avatar {
+  --size: 34px;
+  position: relative; display: block; flex: none; width: var(--size); height: var(--size); border-radius: 50%;
+  background: color-mix(in srgb, var(--fill) 22%, #fff); border: 2px solid rgba(0,0,0,.45);
+}
+.avatar svg { display: block; width: 100%; height: 100%; border-radius: 50%; }
+.avatar.big { --size: 72px; }
+.avatar.victim { border-color: var(--danger); background: #eee; }
+.avatar.victim svg { filter: grayscale(0.6); }
+.avatar .badge { --size: 16px; position: absolute; right: -4px; bottom: -4px; border-width: 1.5px; box-shadow: none; }
+.avatar.big .badge { --size: 24px; right: -6px; bottom: -6px; }
+
 /* ---------- clue cards ---------- */
 .dossier h2, .verdict h3 { margin: 0 0 12px; font-weight: 900; }
 .cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); gap: 14px; }
@@ -157,13 +190,13 @@ select, input, textarea {
   border: 1px solid #e3e3e3; box-shadow: var(--shadow); rotate: -1.5deg;
 }
 .card:nth-child(even) .portrait { rotate: 1.5deg; }
-.portrait .token.big { margin: 4px auto 0; }
+.portrait .avatar.big { margin: 2px auto 0; }
 .portrait .name { display: block; font: 700 21px/1.2 'Dancing Script', cursive; margin-top: 4px; overflow-wrap: anywhere; }
 .portrait .placed {
   position: absolute; top: -8px; right: -8px; width: 22px; height: 22px; border-radius: 50%;
   background: var(--ok); color: #fff; display: grid; place-items: center; font-size: 13px; font-weight: 900;
 }
-.card.victim .token.big::after {
+.card.victim .avatar.big::after {
   content: ''; position: absolute; inset: -6px;
   background:
     linear-gradient(45deg, transparent 46%, var(--danger) 46% 54%, transparent 54%),
@@ -181,7 +214,7 @@ select, input, textarea {
 .bubble .empty { color: var(--muted); font-style: italic; }
 .card.victim .bubble strong { display: block; }
 .card.general { align-items: center; }
-.card.general .lens { font-size: 30px; flex: none; }
+.card.general .lens { width: 40px; height: 40px; flex: none; }
 .card.general .bubble { background: var(--bubble-general); margin-top: 0; font-weight: 700; }
 .card.general .bubble::before { border-right-color: var(--bubble-general); }
 

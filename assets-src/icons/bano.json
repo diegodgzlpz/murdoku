@@ -1,0 +1,67 @@
+{
+  "sheet": "bano.jpeg",
+  "grid": {
+    "cols": 3,
+    "rows": 3
+  },
+  "tolerance": {
+    "inner": 70,
+    "outer": 170
+  },
+  "icons": [
+    {
+      "pos": [0, 0],
+      "id": "bathtub",
+      "kind": "furniture",
+      "occupiable": false
+    },
+    {
+      "pos": [0, 1],
+      "id": "toilet",
+      "kind": "furniture",
+      "occupiable": true
+    },
+    {
+      "pos": [0, 2],
+      "id": "sink",
+      "kind": "furniture",
+      "occupiable": false
+    },
+    {
+      "pos": [1, 0],
+      "id": "shower",
+      "kind": "furniture",
+      "occupiable": true
+    },
+    {
+      "pos": [1, 1],
+      "id": "rug-2",
+      "kind": "furniture",
+      "variantOf": "rug"
+    },
+    {
+      "pos": [1, 2],
+      "id": "washer",
+      "kind": "furniture",
+      "occupiable": false
+    },
+    {
+      "pos": [2, 0],
+      "id": "towelRail",
+      "kind": "furniture",
+      "occupiable": false
+    },
+    {
+      "pos": [2, 1],
+      "id": "plant-2",
+      "kind": "furniture",
+      "variantOf": "plant"
+    },
+    {
+      "pos": [2, 2],
+      "id": "laundryBasket",
+      "kind": "furniture",
+      "occupiable": false
+    }
+  ]
+}

@@ -1,0 +1,67 @@
+{
+  "sheet": "tienda.jpeg",
+  "grid": {
+    "cols": 3,
+    "rows": 3
+  },
+  "tolerance": {
+    "inner": 70,
+    "outer": 170
+  },
+  "icons": [
+    {
+      "pos": [0, 0],
+      "id": "display",
+      "kind": "furniture",
+      "occupiable": false
+    },
+    {
+      "pos": [0, 1],
+      "id": "checkout",
+      "kind": "furniture",
+      "occupiable": false
+    },
+    {
+      "pos": [0, 2],
+      "id": "cart",
+      "kind": "furniture",
+      "occupiable": false
+    },
+    {
+      "pos": [1, 0],
+      "id": "rack",
+      "kind": "furniture",
+      "occupiable": false
+    },
+    {
+      "pos": [1, 1],
+      "id": "clothesTable",
+      "kind": "furniture",
+      "occupiable": false
+    },
+    {
+      "pos": [1, 2],
+      "id": "mannequin",
+      "kind": "furniture",
+      "occupiable": false
+    },
+    {
+      "pos": [2, 0],
+      "id": "basket",
+      "kind": "furniture",
+      "occupiable": false
+    },
+    {
+      "pos": [2, 1],
+      "id": "securityGate",
+      "kind": "furniture",
+      "occupiable": false
+    },
+    {
+      "pos": [2, 2],
+      "id": "bench",
+      "kind": "furniture",
+      "occupiable": true
+    }
+  ]
+}

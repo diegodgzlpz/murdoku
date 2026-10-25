@@ -3,7 +3,7 @@ export * from './model/types';
 export type { Clue, ClueKind, Direction } from './clues/types';
 export { cellIndex, rowOf, colOf, orthogonalNeighbors, isAdjacent, isRoomWall, neighborAt, SIDES } from './model/geometry';
 export { indexBoard, isBlocked } from './model/boardIndex';
-export { createPeople, victimForSeed, VICTIM_NAMES } from './model/people';
+export { castForSeed, createPeople, NAME_POOLS, VICTIM_NAMES, type PersonName } from './model/people';
 export { murdererOf, findConflicts, placementViolations, samePositions, type Conflict } from './model/rules';
 export { clueText, evaluateClue, CLUE_KINDS } from './clues/registry';
 export { victimClueText } from './clues/text';

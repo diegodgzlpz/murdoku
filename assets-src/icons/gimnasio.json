@@ -1,0 +1,67 @@
+{
+  "sheet": "gimnasio.jpeg",
+  "grid": {
+    "cols": 3,
+    "rows": 3
+  },
+  "tolerance": {
+    "inner": 70,
+    "outer": 170
+  },
+  "icons": [
+    {
+      "pos": [0, 0],
+      "id": "treadmill",
+      "kind": "furniture",
+      "occupiable": true
+    },
+    {
+      "pos": [0, 1],
+      "id": "exerciseBike",
+      "kind": "furniture",
+      "occupiable": true
+    },
+    {
+      "pos": [0, 2],
+      "id": "weightBench",
+      "kind": "furniture",
+      "occupiable": true
+    },
+    {
+      "pos": [1, 0],
+      "id": "dumbbellRack",
+      "kind": "furniture",
+      "occupiable": false
+    },
+    {
+      "pos": [1, 1],
+      "id": "yogaMat",
+      "kind": "furniture",
+      "occupiable": true
+    },
+    {
+      "pos": [1, 2],
+      "id": "punchingBag",
+      "kind": "furniture",
+      "occupiable": false
+    },
+    {
+      "pos": [2, 0],
+      "id": "rowingMachine",
+      "kind": "furniture",
+      "occupiable": true
+    },
+    {
+      "pos": [2, 1],
+      "id": "kettlebells",
+      "kind": "furniture",
+      "occupiable": false
+    },
+    {
+      "pos": [2, 2],
+      "id": "lockers",
+      "kind": "furniture",
+      "occupiable": false
+    }
+  ]
+}

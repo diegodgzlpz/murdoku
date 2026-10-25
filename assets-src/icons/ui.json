@@ -1,0 +1,58 @@
+{
+  "sheet": "ui.jpeg",
+  "grid": {
+    "cols": 3,
+    "rows": 3
+  },
+  "tolerance": {
+    "inner": 70,
+    "outer": 170
+  },
+  "icons": [
+    {
+      "pos": [0, 0],
+      "id": "window",
+      "kind": "window"
+    },
+    {
+      "pos": [0, 1],
+      "id": "person",
+      "kind": "person"
+    },
+    {
+      "pos": [0, 2],
+      "id": "person-blue",
+      "kind": "ui"
+    },
+    {
+      "pos": [1, 0],
+      "id": "person-green",
+      "kind": "ui"
+    },
+    {
+      "pos": [1, 1],
+      "id": "person-orange",
+      "kind": "ui"
+    },
+    {
+      "pos": [1, 2],
+      "id": "footprints",
+      "kind": "ui"
+    },
+    {
+      "pos": [2, 0],
+      "id": "victim",
+      "kind": "victim"
+    },
+    {
+      "pos": [2, 1],
+      "id": "magnifier",
+      "kind": "ui"
+    },
+    {
+      "pos": [2, 2],
+      "id": "mark",
+      "kind": "ui"
+    }
+  ]
+}

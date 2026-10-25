@@ -11,11 +11,13 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "generate": "tsx src/cli/generate.ts",
-    "bench": "tsx src/cli/bench.ts"
+    "bench": "tsx src/cli/bench.ts",
+    "icons:import": "tsx scripts/icons/import.ts"
   },
   "devDependencies": {
     "@types/node": "^26.6.5",
     "fast-check": "^4.10.2",
+    "sharp": "^0.34.5",
     "tsx": "^4.23.15",
     "typescript": "^7.0.2",
     "vite": "^8.3.5",

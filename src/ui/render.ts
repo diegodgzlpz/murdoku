@@ -1,5 +1,7 @@
 import { FURNITURE, indexBoard, neighborAt, puzzleClueGroups, SIDES, type Person, type Side } from '../core/index';
 import { conflicts, type GameState, type Mode } from './state';
+import { assignAvatars, avatarSvg } from './avatars';
+import { furnitureIcon, imgAttrs, magnifierIcon, markIcon, personIcon, windowIcon } from './icons/registry';
 import { noteColor, personColor, roomTint } from './theme';
 
 const SIDE_CSS: Record<Side, string> = { N: 'Top', S: 'Bottom', E: 'Right', W: 'Left' };
@@ -11,6 +13,20 @@ export function tokenHtml(p: Pick<Person, 'id' | 'isVictim'>, extraClass = ''): 
   return `<span class="token${p.isVictim ? ' victim' : ''} ${extraClass}" style="--fill:${fill};--ink:${ink}">${p.id}</span>`;
 }
 
+/** Portrait with the pawn letter as a badge; the shirt wears the pawn colour. */
+function avatarHtml(p: Person, variant: number, size: 'big' | 'small'): string {
+  const { fill } = personColor(p.id);
+  const shirt = p.isVictim ? '#4a4a4a' : fill;
+  return `<span class="avatar ${size}${p.isVictim ? ' victim' : ''}" style="--fill:${fill}">${avatarSvg(p.gender, variant, shirt)}${tokenHtml(p, 'badge')}</span>`;
+}
+
+/** Board piece: the person icon (suspects tinted with their pawn colour) with the letter on top via CSS. */
+function pieceHtml(p: Person): string {
+  const { fill } = personColor(p.id);
+  const icon = personIcon(p.isVictim);
+  return `<span class="piece${p.isVictim ? ' victim' : ''}" style="--fill:${fill};--icon:url('${icon.src64}')"><img ${imgAttrs(icon, 'piece-img')}><b>${p.id}</b></span>`;
+}
+
 export function renderBoard(el: HTMLElement, state: GameState): void {
   const { board, people } = state.level.puzzle;
   const n = board.size;
@@ -18,11 +34,17 @@ export function renderBoard(el: HTMLElement, state: GameState): void {
   const bad = new Set<number>();
   for (const c of conflicts(state)) for (const id of c.persons) bad.add(state.placements[id]!);
   const occupant = new Map(Object.entries(state.placements).map(([id, cell]) => [cell!, id]));
-  // Label each room in its first (top-left-most) cell.
-  const labelCell = new Map(board.rooms.map((r) => [Math.min(...r.cells), r.name]));
+  // Label each room in its top-left-most cell without furniture (else its first cell), so icons stay visible.
+  const labelCell = new Map(
+    board.rooms.map((r) => {
+      const cells = [...r.cells].sort((x, y) => x - y);
+      return [cells.find((c) => !idx.furnitureAt[c]) ?? cells[0]!, r.name];
+    }),
+  );
   const order = new Map(people.map((p, i) => [p.id, i]));
 
-  el.style.setProperty('--n', String(n));
+  // --cell is derived from --n on :root, so the board size must be set there.
+  document.documentElement.style.setProperty('--n', String(n));
   el.dataset.mode = state.mode;
   el.replaceChildren();
   for (let cell = 0; cell < n * n; cell++) {
@@ -36,18 +58,22 @@ export function renderBoard(el: HTMLElement, state: GameState): void {
       const nb = neighborAt(cell, side, n);
       const prop = `border${SIDE_CSS[side]}` as 'borderTop';
       div.style[prop] = nb === null || board.roomOf[nb] !== room ? 'var(--wall-w) solid var(--wall)' : '1px solid var(--grid)';
-      if (idx.windowSides[cell]!.includes(side)) html += `<span class="window w-${side}" title="Ventana"></span>`;
+      if (idx.windowSides[cell]!.includes(side)) html += `<img ${imgAttrs(windowIcon(), `window-icon w-${side}`)} title="Ventana">`;
     }
     const label = labelCell.get(cell);
     if (label) html += `<span class="room">${esc(label)}</span>`;
     const f = idx.furnitureAt[cell];
     if (f) {
-      html += `<span class="furn" title="${esc(FURNITURE[f.type].withArticle)}">${FURNITURE[f.type].glyph}</span>`;
+      const icon = furnitureIcon(f.type, cell);
+      const title = esc(FURNITURE[f.type].withArticle);
+      html += icon
+        ? `<img ${imgAttrs(icon, 'furn furn-img')} title="${title}">`
+        : `<span class="furn" title="${title}">${FURNITURE[f.type].glyph}</span>`;
       div.classList.add(f.occupiable ? 'seat' : 'blocked');
     }
     const who = occupant.get(cell);
-    if (who) html += tokenHtml(people.find((x) => x.id === who)!, 'on-board');
-    else if (state.marks.has(cell)) html += `<span class="mark">✕</span>`;
+    if (who) html += pieceHtml(people.find((x) => x.id === who)!);
+    else if (state.marks.has(cell)) html += `<img ${imgAttrs(markIcon(), 'mark')}>`;
     else {
       const notes = state.notes.get(cell);
       if (notes?.size) {
@@ -64,16 +90,17 @@ export function renderBoard(el: HTMLElement, state: GameState): void {
 /** Character cards (portrait + speech bubble), general clues as magnifier bubbles, victim last. */
 export function renderClues(el: HTMLElement, state: GameState): void {
   const placed = state.placements;
+  const avatars = assignAvatars(state.level.puzzle.people);
   el.innerHTML = puzzleClueGroups(state.level.puzzle)
     .map((g) => {
       const lines = g.lines.length
         ? g.lines.map((l) => `<p>${esc(l.text)}</p>`).join('')
         : `<p class="empty">Sin pistas propias.</p>`;
-      if (!g.person) return `<article class="card general"><span class="lens">🔍</span><div class="bubble">${lines}</div></article>`;
+      if (!g.person) return `<article class="card general"><img ${imgAttrs(magnifierIcon(), 'lens')}><div class="bubble">${lines}</div></article>`;
       const p = g.person;
       const done = placed[p.id] !== undefined ? '<span class="placed" title="Colocado">✓</span>' : '';
       return `<article class="card${p.isVictim ? ' victim' : ''}" data-person="${p.id}">
-        <div class="portrait">${tokenHtml(p, 'big')}<span class="name">${esc(p.name)}</span>${done}</div>
+        <div class="portrait">${avatarHtml(p, avatars.get(p.id)!, 'big')}<span class="name">${esc(p.name)}</span>${done}</div>
         <div class="bubble">${lines}</div>
       </article>`;
     })
@@ -89,11 +116,12 @@ const MODES: Array<{ mode: Mode; label: string; key: string }> = [
 
 export function renderTools(el: HTMLElement, state: GameState): void {
   const people = state.level.puzzle.people;
+  const avatars = assignAvatars(people);
   const pawns = people
     .map((p) => {
       const active = state.selected === p.id && (state.mode === 'place' || state.mode === 'note');
       const placed = state.placements[p.id] !== undefined;
-      return `<button class="pawn${active ? ' active' : ''}${placed ? ' placed' : ''}" data-person="${p.id}" title="${esc(p.name)} (tecla ${p.id})">${tokenHtml(p)}<span>${esc(p.name)}</span></button>`;
+      return `<button class="pawn${active ? ' active' : ''}${placed ? ' placed' : ''}" data-person="${p.id}" title="${esc(p.name)} (tecla ${p.id})">${avatarHtml(p, avatars.get(p.id)!, 'small')}<span>${esc(p.name)}</span></button>`;
     })
     .join('');
   const modes = MODES.map(
@@ -104,11 +132,12 @@ export function renderTools(el: HTMLElement, state: GameState): void {
 }
 
 export function renderAccuse(el: HTMLElement, state: GameState): void {
+  const avatars = assignAvatars(state.level.puzzle.people);
   el.innerHTML = state.level.puzzle.people
     .filter((p) => !p.isVictim)
     .map(
       (p) =>
-        `<button class="suspect${state.accusation === p.id ? ' active' : ''}" data-accuse="${p.id}" title="${esc(p.name)}">${tokenHtml(p)}<span>${esc(p.name)}</span></button>`,
+        `<button class="suspect${state.accusation === p.id ? ' active' : ''}" data-accuse="${p.id}" title="${esc(p.name)}">${avatarHtml(p, avatars.get(p.id)!, 'small')}<span>${esc(p.name)}</span></button>`,
     )
     .join('');
 }

@@ -31,6 +31,6 @@ describe('layering', () => {
     for (const dir of ['src/ui', 'src/cli'])
       for (const f of files(join(ROOT, dir)))
         for (const imp of importsOf(f).filter((i) => i.includes('core')))
-          expect(imp, relative(ROOT, f)).toBe('../core/index');
+          expect(imp, relative(ROOT, f)).toMatch(/^(\.\.\/)+core\/index$/);
   });
 });

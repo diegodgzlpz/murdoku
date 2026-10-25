@@ -1,0 +1,102 @@
+{
+  "sheet": "casa.jpeg",
+  "grid": {
+    "cols": 5,
+    "rows": 3
+  },
+  "tolerance": {
+    "inner": 70,
+    "outer": 170
+  },
+  "icons": [
+    {
+      "pos": [0, 0],
+      "id": "bed",
+      "kind": "furniture",
+      "occupiable": true
+    },
+    {
+      "pos": [0, 1],
+      "id": "sofa",
+      "kind": "furniture",
+      "occupiable": true
+    },
+    {
+      "pos": [0, 2],
+      "id": "sofa-2",
+      "kind": "furniture",
+      "variantOf": "sofa"
+    },
+    {
+      "pos": [0, 3],
+      "id": "tv",
+      "kind": "furniture",
+      "occupiable": false
+    },
+    {
+      "pos": [0, 4],
+      "id": "sofa-3",
+      "kind": "furniture",
+      "variantOf": "sofa"
+    },
+    {
+      "pos": [1, 0],
+      "id": "plant",
+      "kind": "furniture",
+      "occupiable": false
+    },
+    {
+      "pos": [1, 1],
+      "id": "shelf",
+      "kind": "furniture",
+      "occupiable": false
+    },
+    {
+      "pos": [1, 2],
+      "id": "table",
+      "kind": "furniture",
+      "occupiable": false
+    },
+    {
+      "pos": [1, 3],
+      "id": "table-2",
+      "kind": "furniture",
+      "variantOf": "table"
+    },
+    {
+      "pos": [1, 4],
+      "skip": true,
+      "note": "manta/toalla sin uso"
+    },
+    {
+      "pos": [2, 0],
+      "id": "chair",
+      "kind": "furniture",
+      "occupiable": true
+    },
+    {
+      "pos": [2, 1],
+      "id": "rug",
+      "kind": "furniture",
+      "occupiable": true
+    },
+    {
+      "pos": [2, 2],
+      "id": "armchair",
+      "kind": "furniture",
+      "occupiable": true
+    },
+    {
+      "pos": [2, 3],
+      "id": "wardrobe",
+      "kind": "furniture",
+      "occupiable": false
+    },
+    {
+      "pos": [2, 4],
+      "id": "wardrobe-2",
+      "kind": "furniture",
+      "variantOf": "wardrobe"
+    }
+  ]
+}
