@@ -1,5 +1,5 @@
 import { FURNITURE, indexBoard, neighborAt, puzzleClueGroups, SIDES, type Person, type Side } from '../core/index';
-import { conflicts, type GameState, type Mode } from './state';
+import { conflicts, crossedCells, type GameState, type Mode } from './state';
 import { assignAvatars, avatarSvg } from './avatars';
 import { furnitureIcon, imgAttrs, magnifierIcon, markIcon, personIcon, windowIcon } from './icons/registry';
 import { noteColor, personColor, roomTint } from './theme';
@@ -33,6 +33,7 @@ export function renderBoard(el: HTMLElement, state: GameState): void {
   const idx = indexBoard(board);
   const bad = new Set<number>();
   for (const c of conflicts(state)) for (const id of c.persons) bad.add(state.placements[id]!);
+  const crossed = crossedCells(state);
   const occupant = new Map(Object.entries(state.placements).map(([id, cell]) => [cell!, id]));
   const solutionAt = new Map(Object.entries(state.level.solution.positions).map(([id, cell]) => [cell, id]));
   // Label each room in its top-left-most cell without furniture (else its first cell), so icons stay visible.
@@ -47,6 +48,8 @@ export function renderBoard(el: HTMLElement, state: GameState): void {
   // --cell is derived from --n on :root, so the board size must be set there.
   document.documentElement.style.setProperty('--n', String(n));
   el.dataset.mode = state.mode;
+  // Colour of the hold-to-place ring.
+  el.style.setProperty('--sel', personColor(state.selected).fill);
   el.replaceChildren();
   for (let cell = 0; cell < n * n; cell++) {
     const room = board.roomOf[cell]!;
@@ -81,6 +84,8 @@ export function renderBoard(el: HTMLElement, state: GameState): void {
     // Solution overlay: a ghost piece wherever the right person is not already placed.
     if (truth && truth !== who) html += pieceHtml(people.find((x) => x.id === truth)!, who ? ' ghost corner' : ' ghost');
     else if (!who && state.marks.has(cell)) html += `<img ${imgAttrs(markIcon(), 'mark')}>`;
+    // Automatic cross: the row or column already has someone (notes stay underneath for when they leave).
+    else if (crossed.has(cell)) html += `<img ${imgAttrs(markIcon(), 'mark auto')}>`;
     else if (!who) {
       const notes = state.notes.get(cell);
       if (notes?.size) {
@@ -90,6 +95,7 @@ export function renderBoard(el: HTMLElement, state: GameState): void {
     }
     div.innerHTML = html;
     if (bad.has(cell)) div.classList.add('conflict');
+    if (crossed.has(cell)) div.classList.add('crossed');
     el.append(div);
   }
 }
@@ -101,7 +107,7 @@ export function renderClues(el: HTMLElement, state: GameState): void {
   el.innerHTML = puzzleClueGroups(state.level.puzzle)
     .map((g) => {
       const lines = g.lines.length
-        ? g.lines.map((l) => `<p>${esc(l.text)}</p>`).join('')
+        ? g.lines.map((l) => `<p${l.clueIndex === null ? '' : ` data-clue="${l.clueIndex}"`}>${esc(l.text)}</p>`).join('')
         : `<p class="empty">Sin pistas propias.</p>`;
       if (!g.person) return `<article class="card general"><img ${imgAttrs(magnifierIcon(), 'lens')}><div class="bubble">${lines}</div></article>`;
       const p = g.person;
@@ -115,8 +121,7 @@ export function renderClues(el: HTMLElement, state: GameState): void {
 }
 
 const MODES: Array<{ mode: Mode; label: string; key: string }> = [
-  { mode: 'place', label: 'Colocar', key: 'P' },
-  { mode: 'note', label: 'Notas', key: 'N' },
+  { mode: 'play', label: 'Jugar', key: 'P' },
   { mode: 'mark', label: 'Descartar', key: 'X' },
   { mode: 'erase', label: 'Borrar', key: '⌫' },
 ];
@@ -126,7 +131,7 @@ export function renderTools(el: HTMLElement, state: GameState): void {
   const avatars = assignAvatars(people);
   const pawns = people
     .map((p) => {
-      const active = state.selected === p.id && (state.mode === 'place' || state.mode === 'note');
+      const active = state.selected === p.id && state.mode === 'play';
       const placed = state.placements[p.id] !== undefined;
       return `<button class="pawn${active ? ' active' : ''}${placed ? ' placed' : ''}" data-person="${p.id}" title="${esc(p.name)} (tecla ${p.id})">${avatarHtml(p, avatars.get(p.id)!, 'small')}<span>${esc(p.name)}</span></button>`;
     })

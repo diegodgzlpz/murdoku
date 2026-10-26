@@ -1,52 +1,77 @@
 import { describe, expect, it } from 'vitest';
 import { castForSeed, generateLevel, NAME_POOLS, puzzleClueGroups, VICTIM_NAMES } from '../src/core/index';
 import { AVATAR_COUNT, assignAvatars, avatarSvg } from '../src/ui/avatars';
-import { check, clickCell, conflicts, newGame, reviewPlacements, selectPerson, toggleSolution, type GameState } from '../src/ui/state';
+import { check, clickCell, conflicts, crossedCells, newGame, reviewPlacements, selectPerson, toggleSolution, type GameState } from '../src/ui/state';
 
 const level = generateLevel({ size: 6, seed: 'ui', scenarioId: 'house', difficulty: 'easy' });
+const n = level.puzzle.board.size;
+const blockedCells = new Set(level.puzzle.board.furniture.filter((f) => !f.occupiable).map((f) => f.cell));
+/** Two free cells sharing a row, plus another free cell. */
+const row = Array.from({ length: n }, (_, r) => r).find(
+  (r) => Array.from({ length: n }, (_, c) => r * n + c).filter((c) => !blockedCells.has(c)).length >= 3,
+)!;
+const [c0, c1, c4] = Array.from({ length: n }, (_, c) => row * n + c).filter((c) => !blockedCells.has(c)) as [number, number, number];
 
 describe('ui state (no DOM)', () => {
-  it('places, moves and removes people', () => {
+  it('places, moves and removes people (hold = place)', () => {
     let s = newGame(level);
-    s = clickCell(s, 0);
-    expect(s.placements.A).toBe(0);
-    s = clickCell(s, 1);
-    expect(s.placements.A).toBe(1);
-    s = clickCell(s, 1);
+    s = clickCell(s, c0, 'place');
+    expect(s.placements.A).toBe(c0);
+    s = clickCell(s, c1, 'place');
+    expect(s.placements.A).toBe(c1);
+    s = clickCell(s, c1, 'place');
     expect(s.placements.A).toBeUndefined();
   });
 
   it('flags row conflicts in real time', () => {
-    let s = clickCell(newGame(level), 0);
-    s = clickCell(selectPerson(s, 'B'), 1);
+    let s = clickCell(newGame(level), c0, 'place');
+    s = clickCell(selectPerson(s, 'B'), c1, 'place');
     expect(conflicts(s).some((c) => c.kind === 'row')).toBe(true);
   });
 
-  it('pencil notes: several people per cell, toggle on/off', () => {
-    let s: GameState = { ...newGame(level), mode: 'note' };
-    s = clickCell(s, 3);
-    s = clickCell(selectPerson(s, 'C'), 3);
-    expect([...s.notes.get(3)!].sort()).toEqual(['A', 'C']);
-    s = clickCell(s, 3);
-    expect([...s.notes.get(3)!]).toEqual(['A']);
-    s = clickCell(s, 3, 'erase');
-    expect(s.notes.has(3)).toBe(false);
+  it('a tap in play mode writes a pencil note: several people per cell, toggle on/off', () => {
+    let s = newGame(level);
+    s = clickCell(s, c0);
+    s = clickCell(selectPerson(s, 'C'), c0);
+    expect([...s.notes.get(c0)!].sort()).toEqual(['A', 'C']);
+    expect(s.placements.A).toBeUndefined();
+    s = clickCell(s, c0);
+    expect([...s.notes.get(c0)!]).toEqual(['A']);
+    s = clickCell(s, c0, 'erase');
+    expect(s.notes.has(c0)).toBe(false);
   });
 
-  it('discarding a cell clears its notes; shift-style override mode works', () => {
-    let s = clickCell(newGame(level), 4, 'note');
-    expect(s.notes.get(4)?.has('A')).toBe(true);
-    expect(s.placements.A).toBeUndefined();
-    s = clickCell(s, 4, 'mark');
-    expect(s.marks.has(4)).toBe(true);
-    expect(s.notes.has(4)).toBe(false);
-    s = clickCell(s, 4, 'mark');
-    expect(s.marks.has(4)).toBe(false);
+  it('discarding a cell clears its notes', () => {
+    let s = clickCell(newGame(level), c4, 'note');
+    expect(s.notes.get(c4)?.has('A')).toBe(true);
+    s = clickCell(s, c4, 'mark');
+    expect(s.marks.has(c4)).toBe(true);
+    expect(s.notes.has(c4)).toBe(false);
+    s = clickCell(s, c4, 'mark');
+    expect(s.marks.has(c4)).toBe(false);
+  });
+
+  it('cells with blocking furniture ignore every action', () => {
+    const blocked = level.puzzle.board.furniture.find((f) => !f.occupiable)!.cell;
+    const s = newGame(level);
+    for (const a of ['place', 'note', 'mark', 'erase'] as const) expect(clickCell(s, blocked, a)).toBe(s);
+  });
+
+  it('placing someone crosses out the rest of their row and column; no notes there', () => {
+    const cell = c0;
+    let s = clickCell(newGame(level), cell, 'place');
+    const crossed = crossedCells(s);
+    expect(crossed.has(cell)).toBe(false);
+    for (const c of crossed) expect(Math.floor(c / n) === Math.floor(cell / n) || c % n === cell % n).toBe(true);
+    const target = [...crossed][0]!;
+    expect(clickCell(selectPerson(s, 'B'), target).notes.has(target)).toBe(false);
+    s = clickCell(s, cell, 'place');
+    expect(crossedCells(s).size).toBe(0);
   });
 
   it('selecting a person leaves mark/erase mode', () => {
     const s = selectPerson({ ...newGame(level), mode: 'mark' }, 'B');
-    expect(s.mode).toBe('place');
+    expect(s.mode).toBe('play');
     expect(s.selected).toBe('B');
   });
 

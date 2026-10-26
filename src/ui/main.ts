@@ -1,6 +1,7 @@
 import './styles.css';
 import {
   checkLevelInvariants,
+  clueFocusCells,
   DIFFICULTIES,
   generateLevel,
   getScenario,
@@ -51,6 +52,7 @@ function render(): void {
   renderClues(cluesEl, state);
   renderTools(toolsEl, state);
   renderAccuse(accuseEl, state);
+  applyFocus();
   const solutionBtn = $<HTMLButtonElement>('solution');
   solutionBtn.textContent = state.showSolution ? 'Ocultar solución' : 'Ver solución';
   solutionBtn.setAttribute('aria-pressed', String(state.showSolution));
@@ -66,6 +68,7 @@ function render(): void {
 }
 
 function update(next: GameState): void {
+  if (next.level !== state?.level) pinnedClue = null;
   state = next;
   render();
 }
@@ -94,19 +97,97 @@ function load(params: GenerationParams): void {
   }, 10);
 }
 
-const cellOf = (e: Event) => (e.target as HTMLElement).closest<HTMLElement>('.cell')?.dataset.cell;
+// Board gestures: a quick tap applies the current tool (in play mode, a pencil note);
+// holding the press places the selected person. Blocking furniture ignores everything.
+const HOLD_MS = 450;
+const cellEl = (e: Event) => (e.target as HTMLElement).closest<HTMLElement>('.cell:not(.blocked)');
+let press: { cell: number; x: number; y: number; el: HTMLElement; timer: number } | null = null;
+let lastPointer = 'mouse';
 
-boardEl.addEventListener('click', (e) => {
-  const cell = cellOf(e);
-  if (!state || cell === undefined) return;
-  update(clickCell(state, Number(cell), e.shiftKey ? 'note' : state.mode));
+function cancelPress(): void {
+  if (!press) return;
+  clearTimeout(press.timer);
+  press.el.classList.remove('pressing');
+  press = null;
+}
+
+boardEl.addEventListener('pointerdown', (e) => {
+  lastPointer = e.pointerType;
+  const el = cellEl(e);
+  if (!state || !el || e.button !== 0) return;
+  const cell = Number(el.dataset.cell);
+  if (e.shiftKey) return update(clickCell(state, cell, 'place'));
+  if (state.mode !== 'play') return update(clickCell(state, cell));
+  el.classList.add('pressing');
+  const timer = window.setTimeout(() => {
+    press = null;
+    navigator.vibrate?.(15);
+    if (state) update(clickCell(state, cell, 'place'));
+  }, HOLD_MS);
+  press = { cell, x: e.clientX, y: e.clientY, el, timer };
 });
+boardEl.addEventListener('pointerup', () => {
+  if (!press || !state) return;
+  const { cell } = press;
+  cancelPress();
+  update(clickCell(state, cell, 'note'));
+});
+boardEl.addEventListener('pointermove', (e) => {
+  if (press && Math.hypot(e.clientX - press.x, e.clientY - press.y) > 10) cancelPress();
+});
+boardEl.addEventListener('pointercancel', cancelPress);
+boardEl.addEventListener('pointerleave', cancelPress);
 boardEl.addEventListener('contextmenu', (e) => {
-  const cell = cellOf(e);
-  if (!state || cell === undefined) return;
   e.preventDefault();
-  update(clickCell(state, Number(cell), 'mark'));
+  // On touch screens a long press also fires contextmenu: that gesture already placed someone.
+  const el = cellEl(e);
+  if (!state || !el || lastPointer !== 'mouse') return;
+  update(clickCell(state, Number(el.dataset.cell), 'mark'));
 });
+
+// Clue focus: hovering a clue (or tapping it, on touch screens) highlights the cells it talks about;
+// hovering a card highlights where that person has been placed.
+let hoverClue: number | null = null;
+let pinnedClue: number | null = null;
+let hoverPerson: string | null = null;
+
+function applyFocus(): void {
+  if (!state) return;
+  const clueIndex = hoverClue ?? pinnedClue;
+  const clue = clueIndex === null ? undefined : state.level.puzzle.clues[clueIndex];
+  const cells = new Set(clue ? clueFocusCells(clue, state.level.puzzle.board) : []);
+  const personCell = hoverPerson === null ? undefined : state.placements[hoverPerson];
+  for (const el of boardEl.querySelectorAll<HTMLElement>('.cell')) {
+    const cell = Number(el.dataset.cell);
+    el.classList.toggle('focus', cells.has(cell));
+    el.classList.toggle('focus-person', cell === personCell);
+  }
+  boardEl.classList.toggle('focusing', cells.size > 0);
+  for (const p of cluesEl.querySelectorAll<HTMLElement>('p[data-clue]'))
+    p.classList.toggle('focus', Number(p.dataset.clue) === clueIndex);
+}
+
+cluesEl.addEventListener('mouseover', (e) => {
+  const target = e.target as HTMLElement;
+  const line = target.closest<HTMLElement>('p[data-clue]');
+  hoverClue = line ? Number(line.dataset.clue) : null;
+  hoverPerson = target.closest<HTMLElement>('.card[data-person]')?.dataset.person ?? null;
+  applyFocus();
+});
+cluesEl.addEventListener('mouseleave', () => {
+  hoverClue = hoverPerson = null;
+  applyFocus();
+});
+cluesEl.addEventListener('click', (e) => {
+  if (!state) return;
+  const target = e.target as HTMLElement;
+  const line = target.closest<HTMLElement>('p[data-clue]');
+  if (line) pinnedClue = pinnedClue === Number(line.dataset.clue) ? null : Number(line.dataset.clue);
+  const person = target.closest<HTMLElement>('.card[data-person]')?.dataset.person;
+  if (person) update(selectPerson(state, person));
+  else applyFocus();
+});
+
 toolsEl.addEventListener('click', (e) => {
   if (!state) return;
   const btn = (e.target as HTMLElement).closest<HTMLElement>('button');
@@ -151,13 +232,13 @@ $('import').addEventListener('click', () => {
   }
 });
 
-// Keyboard: person letters select a pawn; P/N/X/Backspace switch mode.
+// Keyboard: person letters select a pawn; P/X/Backspace switch tool.
 document.addEventListener('keydown', (e) => {
   if (!state || e.ctrlKey || e.metaKey || e.altKey) return;
   if ((e.target as HTMLElement).closest('input, textarea, select')) return;
   const key = e.key.toUpperCase();
   const person = state.level.puzzle.people.find((p) => p.id === key);
-  const modes: Record<string, Mode> = { P: 'place', N: 'note', X: 'mark', BACKSPACE: 'erase', DELETE: 'erase' };
+  const modes: Record<string, Mode> = { P: 'play', X: 'mark', BACKSPACE: 'erase', DELETE: 'erase' };
   if (person) update(selectPerson(state, person.id));
   else if (modes[key]) update({ ...state, mode: modes[key] });
   else return;

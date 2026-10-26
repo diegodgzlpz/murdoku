@@ -1,5 +1,8 @@
 import {
+  colOf,
   findConflicts,
+  isBlocked,
+  rowOf,
   samePositions,
   type CellIndex,
   type Conflict,
@@ -8,8 +11,10 @@ import {
   type Positions,
 } from '../core/index';
 
-/** What a click on a cell does. */
-export type Mode = 'place' | 'note' | 'mark' | 'erase';
+/** Board tool: 'play' = tap for a pencil note, hold to place; or discard / erase on tap. */
+export type Mode = 'play' | 'mark' | 'erase';
+/** What a gesture on a cell does. */
+export type Action = 'place' | 'note' | 'mark' | 'erase';
 
 /** Pure UI state (no DOM). */
 export interface GameState {
@@ -34,7 +39,7 @@ export function newGame(level: Level): GameState {
     notes: new Map(),
     marks: new Set(),
     selected: level.puzzle.people[0]!.id,
-    mode: 'place',
+    mode: 'play',
     accusation: null,
     message: null,
     showSolution: false,
@@ -49,8 +54,24 @@ function cloneNotes(notes: GameState['notes']): GameState['notes'] {
   return new Map([...notes].map(([cell, ids]) => [cell, new Set(ids)]));
 }
 
-/** Apply `mode` (defaults to the current one) to a cell. */
-export function clickCell(state: GameState, cell: CellIndex, mode: Mode = state.mode): GameState {
+/** What a quick tap does in the current mode. */
+export const tapAction = (mode: Mode): Action => (mode === 'play' ? 'note' : mode);
+
+/** Free cells sharing a row or column with a placed person: nobody else can be there. */
+export function crossedCells(state: GameState): Set<CellIndex> {
+  const n = state.level.puzzle.board.size;
+  const placed = Object.values(state.placements) as CellIndex[];
+  const rows = new Set(placed.map((c) => rowOf(c, n)));
+  const cols = new Set(placed.map((c) => colOf(c, n)));
+  const out = new Set<CellIndex>();
+  for (let c = 0; c < n * n; c++)
+    if ((rows.has(rowOf(c, n)) || cols.has(colOf(c, n))) && !placed.includes(c) && !isBlocked(state.level.puzzle.board, c)) out.add(c);
+  return out;
+}
+
+/** Apply an action (default: a tap in the current mode) to a cell. Cells with blocking furniture ignore everything. */
+export function clickCell(state: GameState, cell: CellIndex, mode: Action = tapAction(state.mode)): GameState {
+  if (isBlocked(state.level.puzzle.board, cell)) return state;
   const placements = { ...state.placements };
   const marks = new Set(state.marks);
   const notes = cloneNotes(state.notes);
@@ -66,7 +87,7 @@ export function clickCell(state: GameState, cell: CellIndex, mode: Mode = state.
       }
       break;
     case 'note': {
-      if (occupant) break;
+      if (occupant || crossedCells(state).has(cell)) break;
       const ids = notes.get(cell) ?? new Set<PersonId>();
       ids.has(id) ? ids.delete(id) : ids.add(id);
       if (ids.size) notes.set(cell, ids);
@@ -92,9 +113,8 @@ export function clickCell(state: GameState, cell: CellIndex, mode: Mode = state.
 }
 
 export function selectPerson(state: GameState, id: PersonId): GameState {
-  // Picking a person while discarding/erasing switches back to placing.
-  const mode = state.mode === 'mark' || state.mode === 'erase' ? 'place' : state.mode;
-  return { ...state, selected: id, mode };
+  // Picking a person while discarding/erasing switches back to play.
+  return { ...state, selected: id, mode: 'play' };
 }
 
 export function conflicts(state: GameState): Conflict[] {
