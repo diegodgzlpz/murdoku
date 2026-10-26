@@ -1,9 +1,11 @@
 import {
+  clueText,
   colOf,
   findConflicts,
   isBlocked,
   rowOf,
   samePositions,
+  solveWithLog,
   type CellIndex,
   type Conflict,
   type Level,
@@ -30,7 +32,25 @@ export interface GameState {
   message: { text: string; ok: boolean } | null;
   /** Overlay the solution on the board (player pieces are kept, mistakes highlighted). */
   showSolution: boolean;
+  /** Board snapshots before each change, newest last (for undo). */
+  history: BoardSnapshot[];
+  /** Current hint; any board change clears it. */
+  hint: Hint | null;
 }
+
+export type BoardSnapshot = Pick<GameState, 'placements' | 'notes' | 'marks'>;
+
+export interface Hint {
+  person: PersonId;
+  /** Where the person belongs. */
+  cell: CellIndex;
+  /** Clue that pins the person down, when there is one. */
+  clueIndex: number | null;
+  /** Second request for the same hint: the cell is shown. */
+  revealed: boolean;
+}
+
+const HISTORY_LIMIT = 200;
 
 export function newGame(level: Level): GameState {
   return {
@@ -43,6 +63,8 @@ export function newGame(level: Level): GameState {
     accusation: null,
     message: null,
     showSolution: false,
+    history: [],
+    hint: null,
   };
 }
 
@@ -109,7 +131,78 @@ export function clickCell(state: GameState, cell: CellIndex, mode: Action = tapA
       notes.delete(cell);
       break;
   }
-  return { ...state, placements, marks, notes, message: null };
+  const next = { ...state, placements, marks, notes };
+  if (sameBoard(state, next)) return state;
+  // After placing someone, move on to the next person still off the board.
+  const selected = mode === 'place' && placements[id] !== undefined ? nextUnplaced(state, placements, id) : state.selected;
+  const history = [...state.history, snapshot(state)].slice(-HISTORY_LIMIT);
+  return { ...next, selected, history, message: null, hint: null };
+}
+
+const snapshot = (s: BoardSnapshot): BoardSnapshot => ({ placements: s.placements, notes: s.notes, marks: s.marks });
+
+function sameBoard(a: BoardSnapshot, b: BoardSnapshot): boolean {
+  const pa = Object.entries(a.placements);
+  if (pa.length !== Object.keys(b.placements).length || pa.some(([id, c]) => b.placements[id] !== c)) return false;
+  if (a.marks.size !== b.marks.size || [...a.marks].some((c) => !b.marks.has(c))) return false;
+  if (a.notes.size !== b.notes.size) return false;
+  for (const [cell, ids] of a.notes) {
+    const other = b.notes.get(cell);
+    if (!other || other.size !== ids.size || [...ids].some((id) => !other.has(id))) return false;
+  }
+  return true;
+}
+
+function nextUnplaced(state: GameState, placements: Partial<Positions>, from: PersonId): PersonId {
+  const people = state.level.puzzle.people;
+  const start = people.findIndex((p) => p.id === from);
+  for (let k = 1; k < people.length; k++) {
+    const p = people[(start + k) % people.length]!;
+    if (placements[p.id] === undefined) return p.id;
+  }
+  return from;
+}
+
+export function undo(state: GameState): GameState {
+  const prev = state.history.at(-1);
+  if (!prev) return { ...state, message: { ok: false, text: 'No hay nada que deshacer.' } };
+  return { ...state, ...prev, history: state.history.slice(0, -1), message: null, hint: null };
+}
+
+/**
+ * Next logical step from the player's position: a misplaced person first; otherwise the first
+ * person the deduction chain pins down who is not placed yet. Asking again reveals the cell.
+ */
+export function hint(state: GameState): GameState {
+  const { puzzle, solution } = state.level;
+  const name = (id: PersonId) => puzzle.people.find((p) => p.id === id)!.name;
+  if (state.hint && !state.hint.revealed) {
+    const h = { ...state.hint, revealed: true };
+    return { ...state, hint: h, selected: h.person, mode: 'play', message: { ok: true, text: `${name(h.person)} va en la casilla marcada.` } };
+  }
+  const wrong = puzzle.people.find((p) => state.placements[p.id] !== undefined && state.placements[p.id] !== solution.positions[p.id]);
+  if (wrong) {
+    const h: Hint = { person: wrong.id, cell: solution.positions[wrong.id]!, clueIndex: null, revealed: false };
+    return { ...state, hint: h, selected: h.person, mode: 'play', message: { ok: false, text: `${wrong.name} no está en su sitio.` } };
+  }
+  for (const d of solveWithLog(puzzle).log ?? []) {
+    if (d.type === 'guess') break; // past this point the log explores branches that may be wrong
+    if (d.type !== 'assign' || d.cause.rule === 'guess' || state.placements[d.person] === d.cell) continue;
+    const clueIndex = d.cause.rule === 'clue' ? d.cause.clueIndex : null;
+    let text = `${name(d.person)} solo puede estar en una casilla`;
+    if (clueIndex !== null) text += `. Fíjate en: «${clueText(puzzle.clues[clueIndex]!, puzzle.board, puzzle.people).replace(/\.$/, '')}»`;
+    else if (d.cause.rule === 'rowCol') text += ': descarta por filas y columnas';
+    else if (d.cause.rule === 'murdererRoom') text += ': piensa en quién estaba a solas con la víctima';
+    const h: Hint = { person: d.person, cell: d.cell, clueIndex, revealed: false };
+    return { ...state, hint: h, selected: h.person, mode: 'play', message: { ok: true, text: `${text}. Pide otra pista para ver la casilla.` } };
+  }
+  const left = puzzle.people.find((p) => state.placements[p.id] === undefined);
+  if (left) {
+    const h: Hint = { person: left.id, cell: solution.positions[left.id]!, clueIndex: null, revealed: false };
+    const text = `Toca probar: con lo que hay no se deduce nadie más. Pide otra pista para ver dónde va ${left.name}.`;
+    return { ...state, hint: h, selected: h.person, mode: 'play', message: { ok: true, text } };
+  }
+  return { ...state, message: { ok: true, text: 'Ya están todos en su sitio. Ahora acusa al culpable.' } };
 }
 
 export function selectPerson(state: GameState, id: PersonId): GameState {

@@ -96,6 +96,7 @@ export function renderBoard(el: HTMLElement, state: GameState): void {
     div.innerHTML = html;
     if (bad.has(cell)) div.classList.add('conflict');
     if (crossed.has(cell)) div.classList.add('crossed');
+    if (state.hint?.revealed && state.hint.cell === cell) div.classList.add('hint');
     el.append(div);
   }
 }
@@ -112,7 +113,8 @@ export function renderClues(el: HTMLElement, state: GameState): void {
       if (!g.person) return `<article class="card general"><img ${imgAttrs(magnifierIcon(), 'lens')}><div class="bubble">${lines}</div></article>`;
       const p = g.person;
       const done = placed[p.id] !== undefined ? '<span class="placed" title="Colocado">✓</span>' : '';
-      return `<article class="card${p.isVictim ? ' victim' : ''}" data-person="${p.id}">
+      const hinted = state.hint?.person === p.id ? ' hinted' : '';
+      return `<article class="card${p.isVictim ? ' victim' : ''}${hinted}" data-person="${p.id}">
         <div class="portrait">${avatarHtml(p, avatars.get(p.id)!, 'big')}<span class="name">${esc(p.name)}</span>${done}</div>
         <div class="bubble">${lines}</div>
       </article>`;
@@ -140,7 +142,8 @@ export function renderTools(el: HTMLElement, state: GameState): void {
     (m) =>
       `<button class="mode${state.mode === m.mode ? ' active' : ''}" data-mode="${m.mode}" title="Tecla ${m.key}">${m.label}<kbd>${m.key}</kbd></button>`,
   ).join('');
-  el.innerHTML = `<div class="pawns">${pawns}</div><div class="modes" role="group" aria-label="Modo">${modes}</div>`;
+  const actions = `<button class="mode" data-action="undo" title="Deshacer (Ctrl+Z)"${state.history.length ? '' : ' disabled'}>↶ Deshacer</button><button class="mode" data-action="hint" title="Pista: el siguiente paso lógico">💡 Pista</button>`;
+  el.innerHTML = `<div class="pawns">${pawns}</div><div class="toolbar"><div class="modes" role="group" aria-label="Modo">${modes}</div><div class="modes">${actions}</div></div>`;
 }
 
 export function renderAccuse(el: HTMLElement, state: GameState): void {

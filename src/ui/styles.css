@@ -105,7 +105,8 @@ select, input, textarea {
   content: ''; position: absolute; inset: 12%; z-index: 6; border-radius: 50%; pointer-events: none;
   background: conic-gradient(var(--sel) calc(var(--hold) * 360deg), transparent 0);
   -webkit-mask: radial-gradient(circle, transparent 58%, #000 60%); mask: radial-gradient(circle, transparent 58%, #000 60%);
-  animation: hold 450ms linear forwards;
+  /* Starts a moment late so quick taps don't flash the ring; ends when the hold places (450 ms). */
+  animation: hold 330ms 120ms linear forwards;
 }
 @property --hold { syntax: '<number>'; inherits: false; initial-value: 0; }
 @keyframes hold { to { --hold: 1; } }
@@ -147,6 +148,11 @@ img.furn-img { inset: 10%; width: 80%; height: 80%; margin: 0; filter: drop-shad
 .window-icon.w-W { left: 0; translate: -50% 0; rotate: -90deg; }
 .mark { position: absolute; inset: 26%; width: 48%; height: 48%; pointer-events: none; opacity: 0.55; }
 .mark.auto { opacity: 0.3; }
+.cell.hint { box-shadow: inset 0 0 0 4px var(--ok); animation: hint-glow 0.9s ease-in-out infinite alternate; }
+@keyframes hint-glow { to { box-shadow: inset 0 0 0 4px var(--ok), 0 0 12px 2px var(--ok); } }
+.card.hinted .portrait { outline: 3px solid var(--focus); outline-offset: 2px; }
+.toolbar { display: flex; flex-wrap: wrap; gap: 8px; justify-content: center; }
+.mode:disabled { opacity: 0.4; cursor: default; }
 
 /* Person piece: grey icon tinted with the pawn colour, letter overlaid (never baked into the image). */
 .piece {

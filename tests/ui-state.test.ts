@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { castForSeed, generateLevel, NAME_POOLS, puzzleClueGroups, VICTIM_NAMES } from '../src/core/index';
 import { AVATAR_COUNT, assignAvatars, avatarSvg } from '../src/ui/avatars';
-import { check, clickCell, conflicts, crossedCells, newGame, reviewPlacements, selectPerson, toggleSolution, type GameState } from '../src/ui/state';
+import { check, clickCell, conflicts, crossedCells, hint, newGame, undo, reviewPlacements, selectPerson, toggleSolution, type GameState } from '../src/ui/state';
 
 const level = generateLevel({ size: 6, seed: 'ui', scenarioId: 'house', difficulty: 'easy' });
 const n = level.puzzle.board.size;
@@ -17,7 +17,8 @@ describe('ui state (no DOM)', () => {
     let s = newGame(level);
     s = clickCell(s, c0, 'place');
     expect(s.placements.A).toBe(c0);
-    s = clickCell(s, c1, 'place');
+    expect(s.selected).toBe('B'); // moves on to the next person off the board
+    s = clickCell(selectPerson(s, 'A'), c1, 'place');
     expect(s.placements.A).toBe(c1);
     s = clickCell(s, c1, 'place');
     expect(s.placements.A).toBeUndefined();
@@ -27,6 +28,36 @@ describe('ui state (no DOM)', () => {
     let s = clickCell(newGame(level), c0, 'place');
     s = clickCell(selectPerson(s, 'B'), c1, 'place');
     expect(conflicts(s).some((c) => c.kind === 'row')).toBe(true);
+  });
+
+  it('undo steps back through board changes only', () => {
+    let s = clickCell(newGame(level), c0, 'note');
+    s = clickCell(s, c1, 'place');
+    expect(clickCell(s, blockedCells.values().next().value!, 'place').history.length).toBe(2);
+    s = undo(s);
+    expect(s.placements.A).toBeUndefined();
+    expect(s.notes.get(c0)?.has('A')).toBe(true);
+    s = undo(s);
+    expect(s.notes.size).toBe(0);
+    expect(undo(s).message?.ok).toBe(false);
+  });
+
+  it('hint: names the next deducible person, then reveals the cell; flags misplaced people first', () => {
+    let s = hint(newGame(level));
+    expect(s.hint).not.toBeNull();
+    expect(s.hint!.cell).toBe(level.solution.positions[s.hint!.person]);
+    expect(s.hint!.revealed).toBe(false);
+    expect(s.selected).toBe(s.hint!.person); // ready to hold-place the hinted person
+    s = hint(s);
+    expect(s.hint!.revealed).toBe(true);
+    const id = level.puzzle.people[0]!.id;
+    const wrongCell = [c0, c1].find((c) => c !== level.solution.positions[id])!;
+    s = hint(clickCell(newGame(level), wrongCell, 'place'));
+    expect(s.hint!.person).toBe(id);
+    expect(s.message?.text).toMatch(/no está en su sitio/);
+    const solved = hint({ ...newGame(level), placements: { ...level.solution.positions } });
+    expect(solved.hint).toBeNull();
+    expect(solved.message?.text).toMatch(/acusa/);
   });
 
   it('a tap in play mode writes a pencil note: several people per cell, toggle on/off', () => {
@@ -65,7 +96,7 @@ describe('ui state (no DOM)', () => {
     for (const c of crossed) expect(Math.floor(c / n) === Math.floor(cell / n) || c % n === cell % n).toBe(true);
     const target = [...crossed][0]!;
     expect(clickCell(selectPerson(s, 'B'), target).notes.has(target)).toBe(false);
-    s = clickCell(s, cell, 'place');
+    s = clickCell(selectPerson(s, 'A'), cell, 'place');
     expect(crossedCells(s).size).toBe(0);
   });
 

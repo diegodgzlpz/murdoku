@@ -15,7 +15,7 @@ import {
   type GenerationParams,
 } from '../core/index';
 import { renderAccuse, renderBoard, renderClues, renderTools } from './render';
-import { check, clickCell, newGame, selectPerson, toggleSolution, type GameState, type Mode } from './state';
+import { check, clickCell, hint, newGame, selectPerson, toggleSolution, undo, type GameState, type Mode } from './state';
 
 const $ = <T extends HTMLElement>(id: string) => document.getElementById(id) as T;
 const boardEl = $<HTMLDivElement>('board');
@@ -153,7 +153,7 @@ let hoverPerson: string | null = null;
 
 function applyFocus(): void {
   if (!state) return;
-  const clueIndex = hoverClue ?? pinnedClue;
+  const clueIndex = hoverClue ?? pinnedClue ?? state.hint?.clueIndex ?? null;
   const clue = clueIndex === null ? undefined : state.level.puzzle.clues[clueIndex];
   const cells = new Set(clue ? clueFocusCells(clue, state.level.puzzle.board) : []);
   const personCell = hoverPerson === null ? undefined : state.placements[hoverPerson];
@@ -192,6 +192,8 @@ toolsEl.addEventListener('click', (e) => {
   if (!state) return;
   const btn = (e.target as HTMLElement).closest<HTMLElement>('button');
   if (btn?.dataset.person) update(selectPerson(state, btn.dataset.person));
+  else if (btn?.dataset.action === 'undo') update(undo(state));
+  else if (btn?.dataset.action === 'hint') update(hint(state));
   else if (btn?.dataset.mode) update({ ...state, mode: btn.dataset.mode as Mode });
 });
 accuseEl.addEventListener('click', (e) => {
@@ -232,10 +234,14 @@ $('import').addEventListener('click', () => {
   }
 });
 
-// Keyboard: person letters select a pawn; P/X/Backspace switch tool.
+// Keyboard: person letters select a pawn; P/X/Backspace switch tool; Ctrl+Z undoes.
 document.addEventListener('keydown', (e) => {
-  if (!state || e.ctrlKey || e.metaKey || e.altKey) return;
-  if ((e.target as HTMLElement).closest('input, textarea, select')) return;
+  if (!state || (e.target as HTMLElement).closest('input, textarea, select')) return;
+  if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'z') {
+    e.preventDefault();
+    return update(undo(state));
+  }
+  if (e.ctrlKey || e.metaKey || e.altKey) return;
   const key = e.key.toUpperCase();
   const person = state.level.puzzle.people.find((p) => p.id === key);
   const modes: Record<string, Mode> = { P: 'play', X: 'mark', BACKSPACE: 'erase', DELETE: 'erase' };
